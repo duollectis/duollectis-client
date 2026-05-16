@@ -1,0 +1,35 @@
+{
+	"schemaVersion": 1,
+	"id": "duollectis-client",
+	"version": "${version}",
+	"name": "Duollectis Client",
+	"description": "",
+	"accessWidener": "duollectis.accesswidener",
+	"authors": [
+		"Applee453"
+	],
+	"contact": {
+		"homepage": "https://fabricmc.net/",
+		"sources": "https://github.com/FabricMC/fabric-example-mod"
+	},
+	"license": "CC0-1.0",
+	"icon": "assets/duollectis/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"client": [
+			"org.duollectis.client.DuollectisMod"
+		]
+	},
+	"mixins": [
+		{
+			"config": "duollectis.mixins.json",
+			"environment": "client"
+		}
+	],
+	"depends": {
+		"fabricloader": ">=0.19.2",
+		"minecraft": "~1.21.11",
+		"java": ">=21",
+		"fabric-api": "*"
+	}
+}
