@@ -15,6 +15,31 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(ClientConnection.class)
 public class ClientConnectionMixin {
 
+	//	@Inject(
+	//			method = "channelRead0(Lio/netty/channel/ChannelHandlerContext;Lnet/minecraft/network/packet/Packet;)V",
+	//			at = @At(
+	//					value = "INVOKE",
+	//					target = "Lnet/minecraft/network/ClientConnection;handlePacket(Lnet/minecraft/network/packet/Packet;Lnet/minecraft/network/listener/PacketListener;)V",
+	//					shift = At.Shift.BEFORE
+	//			),
+	//			cancellable = true
+	//	)
+	//	private void onHandlePacket(ChannelHandlerContext channelHandlerContext, Packet<?> packet, CallbackInfo ci) {
+	//		if (packet instanceof BundleS2CPacket bundle) {
+	//			for (Iterator<Packet<? super ClientPlayPacketListener>> it = bundle.getPackets().iterator();
+	//			     it.hasNext(); ) {
+	//				if (MeteorClient.EVENT_BUS
+	//						.post(new PacketEvent.Receive(it.next(), (ClientConnection) (Object) this))
+	//						.isCancelled())
+	//					it.remove();
+	//			}
+	//		}
+	//		else if (MeteorClient.EVENT_BUS
+	//				.post(new PacketEvent.Receive(packet, (ClientConnection) (Object) this))
+	//				.isCancelled())
+	//			ci.cancel();
+	//	}
+
 	@Inject(
 			method = "channelRead0*",
 			at = @At("HEAD"),

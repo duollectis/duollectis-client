@@ -1,18 +1,21 @@
 {
-	"required": true,
-	"package": "org.duollectis.client.mixin",
-	"compatibilityLevel": "JAVA_21",
-	"injectors": {
-		"defaultRequire": 1
-	},
-	"overwrites": {
-		"requireAnnotations": true
-	},
-	"client": [
-		"ClientPlayNetworkHandlerMixin",
-		"events.game.joined.ConnectScreenMixin",
-		"events.packet.ClientConnectionMixin",
-		"events.tick.MiecraftClientMixin",
-		"modules.autoreconnect.DisconnectedScreenMixin"
-	]
+    "required": true,
+    "package": "org.duollectis.client.mixin",
+    "compatibilityLevel": "JAVA_21",
+    "injectors": {
+        "defaultRequire": 1
+    },
+    "overwrites": {
+        "requireAnnotations": true
+    },
+    "client": [
+        "ClientPlayNetworkHandlerMixin",
+        "events.game.joined.ConnectScreenMixin",
+        "events.packet.ClientConnectionMixin",
+        "events.tick.MiecraftClientMixin",
+        "modules.autoreconnect.DisconnectedScreenMixin"
+    ],
+    "mixins": [
+        "proxy.ClientConnectionMixin"
+    ]
 }

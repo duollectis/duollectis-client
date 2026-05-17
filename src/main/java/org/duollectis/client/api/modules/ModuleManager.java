@@ -5,33 +5,19 @@ import it.unimi.dsi.fastutil.objects.Reference2ReferenceOpenHashMap;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtElement;
-import net.minecraft.nbt.NbtIo;
-import net.minecraft.nbt.NbtList;
-import org.duollectis.client.DuollectisMod;
 import org.duollectis.client.api.event.EventManager;
 import org.duollectis.client.modules.*;
+import org.duollectis.client.utils.JsonHelper;
 
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.nio.file.AtomicMoveNotSupportedException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.util.Collection;
 import java.util.Map;
 
 @Slf4j
 public class ModuleManager extends EventManager<Module> {
-
-	private static final Gson GSON = new GsonBuilder()
-			.setPrettyPrinting()
-			.setFormattingStyle(FormattingStyle.PRETTY.withIndent("    "))
-			.serializeNulls()
-			.create();
 
 	@Getter
 	private static final ModuleManager instance = new ModuleManager();
@@ -44,6 +30,7 @@ public class ModuleManager extends EventManager<Module> {
 		add(new AutoLog());
 		add(new AutoReconnect());
 		add(new TestModule());
+		add(new VelocityModule());
 
 		load();
 	}
@@ -85,7 +72,7 @@ public class ModuleManager extends EventManager<Module> {
 		file.getParentFile().mkdirs();
 
 		try (FileWriter writer = new FileWriter(file)) {
-			GSON.toJson(tag, writer);
+			JsonHelper.GSON.toJson(tag, writer);
 		}
 		catch (IOException e) {
 			e.printStackTrace();

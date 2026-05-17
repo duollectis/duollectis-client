@@ -6,6 +6,7 @@ import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.ChestBlock;
 import net.minecraft.block.ShulkerBoxBlock;
+import net.minecraft.client.gui.screen.DisconnectedScreen;
 import net.minecraft.client.render.GameRenderer;
 import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.util.math.MatrixStack;
@@ -22,6 +23,7 @@ import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket;
 import net.minecraft.screen.ScreenHandlerType;
 import net.minecraft.screen.slot.Slot;
 import net.minecraft.screen.slot.SlotActionType;
+import net.minecraft.text.Text;
 import net.minecraft.util.Hand;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
@@ -29,9 +31,13 @@ import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
 import org.duollectis.client.api.modules.Module;
 import org.duollectis.client.api.modules.ModuleInfo;
+import org.duollectis.client.api.modules.ModuleManager;
 import org.duollectis.client.settings.*;
 import org.duollectis.client.utils.*;
 
+import java.time.DayOfWeek;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -58,7 +64,6 @@ public class ZombieDuper extends Module {
 			.name("chests-range")
 			.defaultValue(5)
 			.build());
-
 
 	private final Setting<Double> zombieRange = sgGeneral.add(new DoubleSetting.Builder()
 			.name("zombie-range")
@@ -131,6 +136,11 @@ public class ZombieDuper extends Module {
 			.min(1)
 			.sliderRange(4, 30)
 			.defaultValue(8)
+			.build());
+
+	private final Setting<Boolean> disableOnSaturdayOver = sgGeneral.add(new BoolSetting.Builder()
+			.name("disable-on-saturday-over")
+			.defaultValue(true)
 			.build());
 
 	private final Setting<List<Item>> trashItems = sgGeneral.add(new ItemListSetting.Builder()
@@ -890,6 +900,25 @@ public class ZombieDuper extends Module {
 			return;
 		}
 
+		if (disableOnSaturdayOver.get() && !isSaturdayInMoscow()) {
+			infoDisable("Saturday is over! Disabling!");
+
+			AutoReconnect autoReconnect = ModuleManager.getInstance().get(AutoReconnect.class);
+			autoReconnect.disable();
+
+			if (mc.getNetworkHandler() != null) {
+				mc.getNetworkHandler().getConnection().disconnect(Text.literal("Saturday is done!"));
+			}
+
+			mc.setScreen(new DisconnectedScreen(
+					mc.currentScreen,
+					Text.literal("Saturday is done!"),
+					Text.literal("Dupe ended.")
+			));
+
+			return;
+		}
+
 		if (zombiesPos == null) {
 			activate();
 			return;
@@ -996,5 +1025,15 @@ public class ZombieDuper extends Module {
 			z = -0.7;
 
 		return new Vec3d(x, 0, z);
+	}
+
+	private static final ZoneId MOSCOW_ZONE = ZoneId.of("Europe/Moscow");
+
+	public static boolean isSaturdayInMoscow() {
+		// 1. Получаем текущее время конкретно в часовом поясе Москвы (UTC+3)
+		ZonedDateTime moscowTime = ZonedDateTime.now(MOSCOW_ZONE);
+
+		// 2. Проверяем, равен ли текущий день недели субботе
+		return moscowTime.getDayOfWeek() == DayOfWeek.SATURDAY;
 	}
 }

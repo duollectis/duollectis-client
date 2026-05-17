@@ -85,6 +85,22 @@ public class Module implements EventHandler, ISerializable<Module> {
 		}
 	}
 
+	public void infoDisable(Object arg) {
+		info(arg);
+		disable();
+	}
+
+	public void warningDisable(Object arg) {
+		warning(arg);
+		disable();
+	}
+
+	public void errorDisable(Object arg) {
+		error(arg);
+		disable();
+	}
+
+
 	public void info(Object arg) {
 		addMessage(arg, 0x60FF60);
 	}

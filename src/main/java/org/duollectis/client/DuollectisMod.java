@@ -10,7 +10,7 @@ import net.minecraft.client.util.InputUtil;
 import net.minecraft.util.Identifier;
 import org.duollectis.client.api.event.EventHandler;
 import org.duollectis.client.api.event.EventManager;
-import org.duollectis.client.api.gui.ModulesGui;
+import org.duollectis.client.api.menu.ModulesMenu;
 import org.duollectis.client.api.modules.ModuleManager;
 import org.lwjgl.glfw.GLFW;
 
@@ -36,7 +36,7 @@ public class DuollectisMod implements ClientModInitializer {
 			@Override
 			public void onTickPost() {
 				while (menuKey.wasPressed()) {
-					ModulesGui.open();
+					ModulesMenu.open();
 				}
 			}
 		});
@@ -47,5 +47,8 @@ public class DuollectisMod implements ClientModInitializer {
 				context.consumers()
 		));
 
+//		ScreenEvents.AFTER_INIT.register((client, screen, scaledWidth, scaledHeight) -> {
+//
+//		});
 	}
 }

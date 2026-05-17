@@ -8,4 +8,8 @@ import lombok.Setter;
 public class Cancellable {
 
 	private boolean canceled;
+
+	public void cancel() {
+		canceled = true;
+	}
 }

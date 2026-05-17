@@ -152,11 +152,9 @@ public class AutoLog extends Module {
 
 	private final List<String> nearbyPlayers = new ArrayList<>();
 
-
+	@Override
 	public void onTickPre() {
-		assert mc.player != null;
-
-		if (mc.player.isCreative() || mc.player.isSpectator())
+		if (mc.player == null || mc.world == null || mc.player.isCreative() || mc.player.isSpectator())
 			return;
 
 		if (ignoreIfNaked.get() && InvUtility.isInventoryEmpty(ignoredItems.get()))
@@ -283,7 +281,10 @@ public class AutoLog extends Module {
 				warning("AutoLog triggered in Kick mode!");
 				//                MeteorClient.EVENT_BUS.subscribe(new ScreenListener(message, mc));
 			}
-			case Quit -> mc.disconnect(Text.empty());
+			case Quit -> {
+				mc.getNetworkHandler().getConnection().disconnect(Text.literal("Connection lost."));
+				mc.setScreen(screen);
+			}
 		}
 	}
 

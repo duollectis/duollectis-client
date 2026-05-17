@@ -1,9 +1,11 @@
-package org.duollectis.client.api.gui;
+package org.duollectis.client.api.menu;
 
 import me.shedaniel.clothconfig2.api.ConfigBuilder;
 import me.shedaniel.clothconfig2.api.ConfigCategory;
 import me.shedaniel.clothconfig2.api.ConfigEntryBuilder;
+import me.shedaniel.clothconfig2.impl.builders.SubCategoryBuilder;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.text.StringVisitable;
 import net.minecraft.text.Text;
 import org.duollectis.client.api.modules.Module;
 import org.duollectis.client.api.modules.ModuleManager;
@@ -12,48 +14,50 @@ import org.duollectis.client.settings.EnumSetting;
 import org.duollectis.client.settings.Setting;
 import org.duollectis.client.settings.SettingGroup;
 
-public class ModulesGui {
+public class ModulesMenu {
 
 	public static void open() {
 		MinecraftClient client = MinecraftClient.getInstance();
 
-		// 1. Создаем основу экрана
 		ConfigBuilder builder = ConfigBuilder
 				.create()
 				.setParentScreen(client.currentScreen)
 				.setTitle(Text.literal("Modules"))
 				.setSavingRunnable(() -> ModuleManager.getInstance().save());
 
-		// 2. Создаем вкладку
-		ConfigCategory category = builder.getOrCreateCategory(Text.literal("Functions"));
 		ConfigEntryBuilder entryBuilder = builder.entryBuilder();
 
 
 		for (Module module : ModuleManager.getInstance().all()) {
+			ConfigCategory category = builder.getOrCreateCategory(Text.literal(module.getTitle()));
 
 			category.addEntry(entryBuilder
-					.startBooleanToggle(Text.literal(module.getTitle()), module.isActive())
+					.startBooleanToggle(Text.literal("Enabled"), module.isActive())
+					.setTooltip(Text.literal(module.getDescription()))
 					.setDefaultValue(false)
 					.setSaveConsumer(module::toggle)
 					.build());
 
-
 			// 2. Генерация настроек Метеора
 			for (SettingGroup group : module.getSettings()) {
+
+				SubCategoryBuilder subCategory = entryBuilder
+						.startSubCategory(Text.literal(group.name))
+						.setExpanded(true);
+
 				for (Setting<?> setting : group) {
 
 					// Если настройка скрыта по логике (например, visible() вернул false) — пропускаем её рендер
-					if (!setting.isVisible())
-						continue;
+					//					if (!setting.isVisible())
+					//						continue;
 
-					// Создаем форматированное имя с подсказкой из описания
-					Text settingTitle = Text.literal("  └ [" + group.name + "] " + setting.title);
+					Text settingTitle = Text.literal(setting.title);
 					Text settingTooltip = Text.literal(setting.description);
 
 					// --- Обработка BOOLEAN настроек ---
 					if (setting.get() instanceof Boolean) {
 						Setting<Boolean> boolSetting = (Setting<Boolean>) setting;
-						category.addEntry(entryBuilder
+						subCategory.add(entryBuilder
 								.startBooleanToggle(settingTitle, boolSetting.get())
 								.setDefaultValue(boolSetting.getDefaultValue())
 								.setTooltip(settingTooltip)
@@ -65,32 +69,19 @@ public class ModulesGui {
 					else if (setting.get() instanceof Integer) {
 						Setting<Integer> intSetting = (Setting<Integer>) setting;
 
-						// Если в имени есть "color", Cloth Config автоматически выведет цветовую палитру
-						if (setting.name.toLowerCase().contains("color") || setting.title
-								.toLowerCase()
-								.contains("цвет")) {
-							category.addEntry(entryBuilder
-									.startColorField(settingTitle, intSetting.get())
-									.setDefaultValue(intSetting.getDefaultValue())
-									.setTooltip(settingTooltip)
-									.setSaveConsumer(intSetting::set)
-									.build());
-						}
-						else {
-							// Обычное числовое поле
-							category.addEntry(entryBuilder
-									.startIntField(settingTitle, intSetting.get())
-									.setDefaultValue(intSetting.getDefaultValue())
-									.setTooltip(settingTooltip)
-									.setSaveConsumer(intSetting::set)
-									.build());
-						}
+						// Обычное числовое поле
+						subCategory.add(entryBuilder
+								.startIntField(settingTitle, intSetting.get())
+								.setDefaultValue(intSetting.getDefaultValue())
+								.setTooltip(settingTooltip)
+								.setSaveConsumer(intSetting::set)
+								.build());
 					}
 
 					// --- Обработка DOUBLE/FLOAT настроек (например, дистанция атаки 4.5 блока) ---
 					else if (setting.get() instanceof Double) {
 						Setting<Double> doubleSetting = (Setting<Double>) setting;
-						category.addEntry(entryBuilder
+						subCategory.add(entryBuilder
 								.startDoubleField(settingTitle, doubleSetting.get())
 								.setDefaultValue(doubleSetting.getDefaultValue())
 								.setTooltip(settingTooltip)
@@ -99,8 +90,11 @@ public class ModulesGui {
 					}
 					else if (setting instanceof ColorSetting) {
 						Setting<java.awt.Color> colorSetting = (Setting<java.awt.Color>) setting;
-						category.addEntry(entryBuilder
-								.startColorField(settingTitle, colorSetting.get().getRGB() & 0xFFFFFF) // Трэчит только RGB для палитры
+						subCategory.add(entryBuilder
+								.startColorField(
+										settingTitle,
+										colorSetting.get().getRGB() & 0xFFFFFF
+								) // Трэчит только RGB для палитры
 								.setDefaultValue(colorSetting.getDefaultValue().getRGB() & 0xFFFFFF)
 								.setTooltip(settingTooltip)
 								.setSaveConsumer(newRgb -> {
@@ -113,8 +107,12 @@ public class ModulesGui {
 					// --- Обработка ENUM настроек (наш новый EnumSetting) ---
 					else if (setting instanceof EnumSetting) {
 						EnumSetting<Enum<?>> enumSetting = (EnumSetting<Enum<?>>) setting;
-						category.addEntry(entryBuilder
-								.startEnumSelector(settingTitle, (Class<Enum<?>>) enumSetting.get().getClass(), enumSetting.get())
+						subCategory.add(entryBuilder
+								.startEnumSelector(
+										settingTitle,
+										(Class<Enum<?>>) enumSetting.get().getClass(),
+										enumSetting.get()
+								)
 								.setDefaultValue(enumSetting.getDefaultValue())
 								.setTooltip(settingTooltip)
 								.setSaveConsumer(enumSetting::set)
@@ -123,6 +121,8 @@ public class ModulesGui {
 
 					// Сюда по аналогии будут добавляться StringSetting, EnumSetting и др.
 				}
+
+				category.addEntry(subCategory.build());
 			}
 
 		}
