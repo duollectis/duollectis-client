@@ -18,40 +18,38 @@ import java.net.InetSocketAddress;
 @Mixin(ClientConnection.class)
 public abstract class ClientConnectionMixin {
 
-//	@Inject(
-//			method = "addHandlers",
-//			at = @At("RETURN")
-//	)
-//	private static void onAddHandlers(
-//			ChannelPipeline pipeline,
-//			NetworkSide side,
-//			boolean local,
-//			PacketSizeLogger packetSizeLogger,
-//			CallbackInfo ci
-//	) {
-//		if (side != NetworkSide.CLIENTBOUND || local)
-//			return;
-//
-//		Proxy proxy = ProxyManager.getInstance().getActiveProxy();
-//
-//		if (proxy == null) {
-//			return;
-//		}
-//
-//		switch (proxy.getType()) {
-//
-//			case SOCKS4 -> pipeline.addFirst(new Socks4ProxyHandler(
-//					new InetSocketAddress(
-//							proxy.getName(),
-//							proxy.getPort()
-//					), proxy.getUsername()
-//			));
-//			case SOCKS5 -> pipeline.addFirst(new Socks5ProxyHandler(
-//					new InetSocketAddress(
-//							proxy.getName(),
-//							proxy.getPort()
-//					), proxy.getUsername(), proxy.getPassword()
-//			));
-//		}
-//	}
+	@Inject(
+			method = "addHandlers",
+			at = @At("RETURN")
+	)
+	private static void onAddHandlers(
+			ChannelPipeline pipeline,
+			NetworkSide side,
+			boolean local,
+			PacketSizeLogger packetSizeLogger,
+			CallbackInfo ci
+	) {
+		if (side != NetworkSide.CLIENTBOUND || local)
+			return;
+
+		ProxyManager pm = ProxyManager.getInstance();
+		if (pm == null) return;
+
+		Proxy proxy = pm.getActiveProxy();
+		if (proxy == null) return;
+
+		System.out.println("Add proxy: " + proxy.getAddress() + ":" + proxy.getPort());
+
+		switch (proxy.getType()) {
+			case SOCKS4 -> pipeline.addFirst(new Socks4ProxyHandler(
+					new InetSocketAddress(proxy.getAddress(), proxy.getPort()),
+					proxy.getUsername()
+			));
+			case SOCKS5 -> pipeline.addFirst(new Socks5ProxyHandler(
+					new InetSocketAddress(proxy.getAddress(), proxy.getPort()),
+					proxy.getUsername(),
+					proxy.getPassword()
+			));
+		}
+	}
 }

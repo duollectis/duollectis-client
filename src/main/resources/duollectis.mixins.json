@@ -13,7 +13,8 @@
         "events.game.joined.ConnectScreenMixin",
         "events.packet.ClientConnectionMixin",
         "events.tick.MiecraftClientMixin",
-        "modules.autoreconnect.DisconnectedScreenMixin"
+        "modules.autoreconnect.DisconnectedScreenMixin",
+        "gui.TitleScreenMixin"
     ],
     "mixins": [
         "proxy.ClientConnectionMixin"

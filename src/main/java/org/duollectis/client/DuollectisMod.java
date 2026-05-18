@@ -12,6 +12,7 @@ import org.duollectis.client.api.event.EventHandler;
 import org.duollectis.client.api.event.EventManager;
 import org.duollectis.client.api.menu.ModulesMenu;
 import org.duollectis.client.api.modules.ModuleManager;
+import org.duollectis.client.api.proxy.ProxyManager;
 import org.lwjgl.glfw.GLFW;
 
 public class DuollectisMod implements ClientModInitializer {
@@ -23,14 +24,19 @@ public class DuollectisMod implements ClientModInitializer {
 
 	@Override
 	public void onInitializeClient() {
+		// Initialize proxy manager (loads proxies.json)
+		new ProxyManager();
+
 		eventManager.add(ModuleManager.getInstance());
 
+		// Modules menu key (Right Shift)
 		KeyBinding menuKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
 				"key.duollectis.menu.open",
 				InputUtil.Type.KEYSYM,
 				GLFW.GLFW_KEY_RIGHT_SHIFT,
 				KeyBinding.Category.create(Identifier.of("duollectis", "category"))
 		));
+
 
 		eventManager.add(new EventHandler() {
 			@Override
@@ -46,9 +52,5 @@ public class DuollectisMod implements ClientModInitializer {
 				context.gameRenderer(),
 				context.consumers()
 		));
-
-//		ScreenEvents.AFTER_INIT.register((client, screen, scaledWidth, scaledHeight) -> {
-//
-//		});
 	}
 }
