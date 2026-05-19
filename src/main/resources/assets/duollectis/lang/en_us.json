@@ -23,7 +23,7 @@
   "screen.duollectis.proxy_manager.field.port": "Port",
   "screen.duollectis.proxy_manager.field.username": "Username (optional)",
   "screen.duollectis.proxy_manager.field.password": "Password (optional)",
-  "screen.duollectis.proxy_manager.field.treads": "Threads",
+  "screen.duollectis.proxy_manager.field.threads": "Threads",
 
   "screen.duollectis.proxy_manager.btn.add": "Add",
   "screen.duollectis.proxy_manager.btn.remove": "Remove",
@@ -43,11 +43,13 @@
   "screen.duollectis.proxy_manager.btn.done": "Done",
   "screen.duollectis.proxy_manager.btn.ping_on": "Ping: ON",
   "screen.duollectis.proxy_manager.btn.ping_off": "Ping: OFF",
+  "screen.duollectis.proxy_manager.btn.next": "Next",
 
   "screen.duollectis.proxy_manager.sort.none": "None",
-  "screen.duollectis.proxy_manager.sort.ping_asc": "Latency ↑",
-  "screen.duollectis.proxy_manager.sort.ping_desc": "Latency ↓",
-  "screen.duollectis.proxy_manager.sort.ping_count": "Ping count",
+  "screen.duollectis.proxy_manager.sort.latency_asc": "Latency ↑",
+  "screen.duollectis.proxy_manager.sort.latency_desc": "Latency ↓",
+  "screen.duollectis.proxy_manager.sort.ping_asc": "Pings ↑",
+  "screen.duollectis.proxy_manager.sort.ping_desc": "Pings ↓",
   "screen.duollectis.proxy_manager.sort.type": "Type",
   "screen.duollectis.proxy_manager.sort.ip": "IP",
 
@@ -96,5 +98,7 @@
   "screen.duollectis.proxy_manager.entry.active_prefix": "► ",
   "screen.duollectis.proxy_manager.entry.inactive_prefix": "  ",
   "screen.duollectis.proxy_manager.entry.copy_btn": "[C]",
-  "screen.duollectis.proxy_manager.msg.copied": "Copied: %s"
+  "screen.duollectis.proxy_manager.msg.copied": "Copied: %s",
+  "screen.duollectis.proxy_manager.msg.no_ok_proxy": "No OK proxies available.",
+  "screen.duollectis.proxy_manager.msg.next_proxy": "Next proxy: %s"
 }

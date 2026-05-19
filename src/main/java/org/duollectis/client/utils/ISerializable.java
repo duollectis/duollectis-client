@@ -1,11 +1,10 @@
 package org.duollectis.client.utils;
 
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
-public interface ISerializable<T> {
-    JsonObject toTag();
+public interface ISerializable {
 
-    T fromTag(JsonObject tag);
+	JsonObject toJson();
 
+	void fromJson(JsonObject jsonObject);
 }

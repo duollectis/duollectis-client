@@ -32,7 +32,7 @@ public abstract class DisconnectedScreenMixin extends Screen {
 	@Unique
 	private ButtonWidget reconnectBtn;
 	@Unique
-	private double time = ModuleManager.getInstance().get(AutoReconnect.class).time.get() * 20;
+	private double time = ModuleManager.getInstance().get(AutoReconnect.class).getTime().get() * 20;
 
 	protected DisconnectedScreenMixin(Text title) {
 		super(title);
@@ -49,17 +49,17 @@ public abstract class DisconnectedScreenMixin extends Screen {
 	private void addButtons(CallbackInfo ci) {
 		AutoReconnect autoReconnect = ModuleManager.getInstance().get(AutoReconnect.class);
 
-		if (autoReconnect.lastServerConnection != null && !autoReconnect.button.get()) {
+		if (autoReconnect.getLastServerConnection() != null && autoReconnect.getButton().get() == false) {
 			reconnectBtn = new ButtonWidget.Builder(Text.literal(getText()), button -> tryConnecting()).build();
 			grid.add(reconnectBtn);
 
 			grid.add(
 					new ButtonWidget.Builder(
 							Text.literal("Toggle Auto Reconnect"), button -> {
-						autoReconnect.toggle();
-						reconnectBtn.setMessage(Text.literal(getText()));
-						time = autoReconnect.time.get() * 20;
-					}
+								autoReconnect.toggle();
+								reconnectBtn.setMessage(Text.literal(getText()));
+								time = autoReconnect.getTime().get() * 20;
+							}
 					).build()
 			);
 		}
@@ -68,16 +68,19 @@ public abstract class DisconnectedScreenMixin extends Screen {
 	@Override
 	public void tick() {
 		AutoReconnect autoReconnect = ModuleManager.getInstance().get(AutoReconnect.class);
-		if (!autoReconnect.isActive() || autoReconnect.lastServerConnection == null)
+
+		if (autoReconnect.isActive() == false || autoReconnect.getLastServerConnection() == null) {
 			return;
+		}
 
 		if (time <= 0) {
 			tryConnecting();
-		}
-		else {
+		} else {
 			time--;
-			if (reconnectBtn != null)
+
+			if (reconnectBtn != null) {
 				reconnectBtn.setMessage(Text.literal(getText()));
+			}
 		}
 	}
 
@@ -91,7 +94,7 @@ public abstract class DisconnectedScreenMixin extends Screen {
 
 	@Unique
 	private void tryConnecting() {
-		var lastServer = ModuleManager.getInstance().get(AutoReconnect.class).lastServerConnection;
+		var lastServer = ModuleManager.getInstance().get(AutoReconnect.class).getLastServerConnection();
 		ConnectScreen.connect(
 				new TitleScreen(),
 				MinecraftClient.getInstance(),

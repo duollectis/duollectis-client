@@ -1,27 +1,39 @@
-/*
- * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
- * Copyright (c) Meteor Development.
- */
-
 package org.duollectis.client.settings;
 
-import com.google.gson.JsonObject;
-import net.minecraft.nbt.NbtCompound;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonPrimitive;
+import lombok.Getter;
+import org.duollectis.client.api.settings.Setting;
 import org.duollectis.client.utils.IVisible;
 
 import java.util.function.Consumer;
 
 public class DoubleSetting extends Setting<Double> {
 
-	public final double min, max;
-	public final double sliderMin, sliderMax;
-	public final boolean onSliderRelease;
-	public final int decimalPlaces;
-	public final boolean noSlider;
+	@Getter
+	private final double min;
+
+	@Getter
+	private final double max;
+
+	@Getter
+	private final double sliderMin;
+
+	@Getter
+	private final double sliderMax;
+
+	@Getter
+	private final boolean onSliderRelease;
+
+	@Getter
+	private final int decimalPlaces;
+
+	@Getter
+	private final boolean noSlider;
 
 	private DoubleSetting(
-			String name,
-			String description,
+			String id,
+			String group,
 			double defaultValue,
 			Consumer<Double> onChanged,
 			Consumer<Setting<Double>> onModuleActivated,
@@ -34,7 +46,7 @@ public class DoubleSetting extends Setting<Double> {
 			int decimalPlaces,
 			boolean noSlider
 	) {
-		super(name, description, defaultValue, onChanged, onModuleActivated, visible);
+		super(id, group, defaultValue, onChanged, onModuleActivated, visible);
 
 		this.min = min;
 		this.max = max;
@@ -49,8 +61,7 @@ public class DoubleSetting extends Setting<Double> {
 	protected Double parseImpl(String str) {
 		try {
 			return Double.parseDouble(str.trim());
-		}
-		catch (NumberFormatException ignored) {
+		} catch (NumberFormatException ignored) {
 			return null;
 		}
 	}
@@ -61,27 +72,31 @@ public class DoubleSetting extends Setting<Double> {
 	}
 
 	@Override
-	protected JsonObject save(JsonObject tag) {
-		tag.addProperty("value", get());
-		return tag;
+	public JsonElement writeValue() {
+		return new JsonPrimitive(get());
 	}
 
 	@Override
-	public Double load(JsonObject tag) {
-		set(tag.has("value") ? tag.get("value").getAsDouble() : 0.0);
-		return get();
+	public void readValue(JsonElement element) {
+		set(element.getAsDouble());
+	}
+
+	public static Builder create(String id) {
+		return new Builder(id);
 	}
 
 	public static class Builder extends SettingBuilder<Builder, Double, DoubleSetting> {
 
-		public double min = Double.NEGATIVE_INFINITY, max = Double.POSITIVE_INFINITY;
-		public double sliderMin = 0, sliderMax = 10;
-		public boolean onSliderRelease = false;
-		public int decimalPlaces = 3;
-		public boolean noSlider = false;
+		private double min = Double.NEGATIVE_INFINITY;
+		private double max = Double.POSITIVE_INFINITY;
+		private double sliderMin = 0;
+		private double sliderMax = 10;
+		private boolean onSliderRelease = false;
+		private int decimalPlaces = 3;
+		private boolean noSlider = false;
 
-		public Builder() {
-			super(0D);
+		private Builder(String id) {
+			super(id, 0D);
 		}
 
 		public Builder defaultValue(double defaultValue) {
@@ -100,15 +115,32 @@ public class DoubleSetting extends Setting<Double> {
 			return this;
 		}
 
+		public Builder sliderRange(double min, double max) {
+			this.sliderMin = min;
+			this.sliderMax = max;
+			return this;
+		}
+
 		public Builder decimalPlaces(int decimalPlaces) {
 			this.decimalPlaces = decimalPlaces;
 			return this;
 		}
 
-		public DoubleSetting build() {
+		public Builder onSliderRelease() {
+			this.onSliderRelease = true;
+			return this;
+		}
+
+		public Builder noSlider() {
+			this.noSlider = true;
+			return this;
+		}
+
+		@Override
+		public DoubleSetting done() {
 			return new DoubleSetting(
-					name,
-					description,
+					id,
+					group,
 					defaultValue,
 					onChanged,
 					onModuleActivated,
@@ -122,5 +154,7 @@ public class DoubleSetting extends Setting<Double> {
 					noSlider
 			);
 		}
+
 	}
+
 }

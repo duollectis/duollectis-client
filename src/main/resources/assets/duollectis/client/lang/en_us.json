@@ -1,0 +1,173 @@
+{
+    "duollectis.client": {
+        "global": {
+            "settings": {
+
+            }
+        },
+        "modules": {
+            "auto-reconnect": {
+                "name": "Auto Reconnect",
+                "description": "Automatically reconnects to the last server after disconnection.",
+                "settings": {
+                    "delay": {
+                        "name": "Delay",
+                        "description": "Seconds to wait before reconnecting."
+                    },
+                    "hide-buttons": {
+                        "name": "Hide Buttons",
+                        "description": "Hides the disconnect screen buttons while waiting."
+                    }
+                }
+            },
+            "auto-gap": {
+                "name": "Auto Gap",
+                "description": "Automatically eats an enchanted golden apple from the hotbar when health drops below the threshold.",
+                "settings": {
+                    "min-health": {
+                        "name": "Min Health",
+                        "description": "Health + absorption threshold below which a gap is eaten."
+                    },
+                    "eat-delay": {
+                        "name": "Eat Delay",
+                        "description": "Ticks to wait between gap eating attempts."
+                    }
+                }
+            },
+            "auto-log": {
+                "name": "Auto Log",
+                "description": "Disconnects from the server when a dangerous condition is detected.",
+                "settings": {
+                    "log-mode": {
+                        "name": "Log Mode",
+                        "description": "Kick — sends a kick packet; Quit — closes the connection directly."
+                    },
+                    "trigger-mode": {
+                        "name": "Trigger Mode",
+                        "description": "What triggers the disconnect: low health, low totem count, or nothing."
+                    },
+                    "health": {
+                        "name": "Health",
+                        "description": "Health value at or below which the module triggers. Visible only in Health mode."
+                    },
+                    "only-no-totems": {
+                        "name": "Only No Totems",
+                        "description": "Triggers only when no totem of undying is in the inventory. Visible only in Health mode."
+                    },
+                    "totems-count": {
+                        "name": "Totems Count",
+                        "description": "Triggers when totem count drops to this value or below. Visible only in Totems mode."
+                    },
+                    "toggle-off": {
+                        "name": "Toggle Off",
+                        "description": "Disables the module after triggering to prevent repeated disconnects."
+                    },
+                    "ignore-if-naked": {
+                        "name": "Ignore If Naked",
+                        "description": "Skips the trigger check when the inventory contains only ignored items."
+                    },
+                    "ignores-items": {
+                        "name": "Ignored Items",
+                        "description": "Items that are excluded when checking if the inventory is empty. Visible only when Ignore If Naked is on."
+                    },
+                    "log-messages": {
+                        "name": "Log Messages",
+                        "description": "Shows a chat message with trigger details on disconnect."
+                    },
+                    "show-nearby-players": {
+                        "name": "Show Nearby Players",
+                        "description": "Appends a list of nearby players to the disconnect message."
+                    },
+                    "nearby-players-range": {
+                        "name": "Nearby Players Range",
+                        "description": "Radius in blocks to scan for nearby players. Visible only when Show Nearby Players is on."
+                    },
+                    "ignore-friends": {
+                        "name": "Ignore Friends",
+                        "description": "Excludes friends from the nearby players list."
+                    }
+                }
+            },
+            "zombie-duper": {
+                "name": "Zombie Duper",
+                "description": "Automates the zombie-based shulker duplication process (for 2k2f.ru).",
+                "settings": {
+                    "debug": {
+                        "name": "Debug",
+                        "description": "Prints step-by-step debug messages to chat."
+                    },
+                    "chests-range": {
+                        "name": "Chests Range",
+                        "description": "Radius in blocks to search for chests when stacking or finding nametags."
+                    },
+                    "zombie-range": {
+                        "name": "Zombie Range",
+                        "description": "Radius in blocks to consider zombies as part of the dupe setup."
+                    },
+                    "count-range": {
+                        "name": "Count Range",
+                        "description": "Radius in blocks used to count zombies and shulkers around the dupe position."
+                    },
+                    "zombie-trash-range": {
+                        "name": "Zombie Trash Range",
+                        "description": "Radius in blocks to check for empty zombies when deciding movement."
+                    },
+                    "speed": {
+                        "name": "Speed",
+                        "description": "Movement speed when repositioning around the dupe spot."
+                    },
+                    "delay": {
+                        "name": "Delay",
+                        "description": "Ticks between each main dupe tick cycle."
+                    },
+                    "drop-per-tick": {
+                        "name": "Drop Per Tick",
+                        "description": "Number of trash item slots dropped per tick during cleanup."
+                    },
+                    "nametag-amount": {
+                        "name": "Nametag Amount",
+                        "description": "How many nametags to pull from a chest at once."
+                    },
+                    "nametag-slot": {
+                        "name": "Nametag Slot",
+                        "description": "Hotbar slot (1–9) to move nametags into."
+                    },
+                    "refresh-delay": {
+                        "name": "Refresh Delay",
+                        "description": "Ticks to wait before retrying after no chests or nametags are found."
+                    },
+                    "sword-slot": {
+                        "name": "Sword Slot",
+                        "description": "Hotbar slot (1–9) to move the sword into when needed."
+                    },
+                    "max-full-slots": {
+                        "name": "Max Full Slots",
+                        "description": "Inventory slot count at which stacking mode activates."
+                    },
+                    "min-shulkers": {
+                        "name": "Min Shulkers",
+                        "description": "Minimum shulker count in inventory before stacking into chests begins."
+                    },
+                    "disable-on-saturday-over": {
+                        "name": "Disable On Saturday Over",
+                        "description": "Disconnects and disables the module when Saturday ends in Moscow time."
+                    },
+                    "trash-items": {
+                        "name": "Trash Items",
+                        "description": "Items considered trash and dropped automatically during cleanup."
+                    }
+                }
+            },
+            "velocity": {
+                "name": "Velocity",
+                "description": "Cancels incoming knockback packets for the local player.",
+                "settings": {}
+            },
+            "test": {
+                "name": "Test",
+                "description": "",
+                "settings": {}
+            }
+        }
+    }
+}

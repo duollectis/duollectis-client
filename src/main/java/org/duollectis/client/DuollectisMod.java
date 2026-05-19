@@ -1,56 +1,64 @@
 package org.duollectis.client;
 
-import lombok.Getter;
 import net.fabricmc.api.ClientModInitializer;
-
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderEvents;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.util.Identifier;
-import org.duollectis.client.api.event.EventHandler;
-import org.duollectis.client.api.event.EventManager;
-import org.duollectis.client.api.menu.ModulesMenu;
+import org.duollectis.client.api.event.EventBus;
+import org.duollectis.client.api.event.events.RenderEvent;
+import org.duollectis.client.api.event.events.TickPostEvent;
+import org.duollectis.client.api.i18n.ClientConfig;
+import org.duollectis.client.api.i18n.ClientTranslations;
+import org.duollectis.client.api.menu.modules.ModulesScreen;
 import org.duollectis.client.api.modules.ModuleManager;
 import org.duollectis.client.api.proxy.ProxyManager;
 import org.lwjgl.glfw.GLFW;
 
 public class DuollectisMod implements ClientModInitializer {
 
-	public static final String MOD_ID = "duollectis";
+    public static final String MOD_ID = "duollectis";
 
-	@Getter
-	private static final EventManager<EventHandler> eventManager = new EventManager<>();
+    @Override
+    public void onInitializeClient() {
+        ClientTranslations.getInstance().reload(ClientConfig.getInstance().getLocale());
 
-	@Override
-	public void onInitializeClient() {
-		// Initialize proxy manager (loads proxies.json)
-		new ProxyManager();
+        new ProxyManager();
 
-		eventManager.add(ModuleManager.getInstance());
+        ModuleManager.getInstance();
 
-		// Modules menu key (Right Shift)
-		KeyBinding menuKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
-				"key.duollectis.menu.open",
-				InputUtil.Type.KEYSYM,
-				GLFW.GLFW_KEY_RIGHT_SHIFT,
-				KeyBinding.Category.create(Identifier.of("duollectis", "category"))
-		));
+        KeyBindingHelper.registerKeyBinding(new KeyBinding(
+            "key.duollectis.menu.open",
+            InputUtil.Type.KEYSYM,
+            GLFW.GLFW_KEY_RIGHT_SHIFT,
+            KeyBinding.Category.create(Identifier.of("duollectis", "category"))
+        ));
 
+        boolean[] menuKeyHeld = {false};
 
-		eventManager.add(new EventHandler() {
-			@Override
-			public void onTickPost() {
-				while (menuKey.wasPressed()) {
-					ModulesMenu.open();
-				}
-			}
-		});
+        EventBus.getInstance().subscribe(TickPostEvent.class, event -> {
+            boolean pressed = InputUtil.isKeyPressed(
+                MinecraftClient.getInstance().getWindow(),
+                GLFW.GLFW_KEY_RIGHT_SHIFT
+            );
 
-		WorldRenderEvents.END_MAIN.register(context -> eventManager.onRender(
-				context.matrices(),
-				context.gameRenderer(),
-				context.consumers()
-		));
-	}
+            if (pressed && menuKeyHeld[0] == false) {
+                menuKeyHeld[0] = true;
+                ModulesScreen.open();
+            } else if (pressed == false) {
+                menuKeyHeld[0] = false;
+            }
+        });
+
+        WorldRenderEvents.END_MAIN.register(context ->
+            EventBus.getInstance().post(new RenderEvent(
+                context.matrices(),
+                context.gameRenderer(),
+                context.consumers()
+            ))
+        );
+    }
+
 }

@@ -1,20 +1,21 @@
 package org.duollectis.client.modules;
 
-import net.minecraft.client.render.GameRenderer;
-import net.minecraft.client.render.VertexConsumerProvider;
-import net.minecraft.client.util.math.MatrixStack;
+import org.duollectis.client.api.event.Subscribe;
+import org.duollectis.client.api.event.events.RenderEvent;
 import org.duollectis.client.api.modules.Module;
 import org.duollectis.client.api.modules.ModuleInfo;
-import org.duollectis.client.utils.RenderUtils;
+import org.duollectis.client.utils.render.RenderUtils;
 
-@ModuleInfo(
-		name = "test",
-		description = "TEST"
-)
+@ModuleInfo("test")
 public class TestModule extends Module {
 
-	@Override
-	public void onRender(MatrixStack matrices, GameRenderer gameRenderer, VertexConsumerProvider consumers) {
-		RenderUtils.drawLinesBox(matrices, mc.player.getBlockPos(), 0xFFFFFF00);
+	@Subscribe
+	private void onRender(RenderEvent event) {
+		if (mc.player == null) {
+			return;
+		}
+
+		RenderUtils.drawLinesBox(event.getMatrices(), mc.player.getBlockPos(), 0xFFFFFF00);
 	}
+
 }

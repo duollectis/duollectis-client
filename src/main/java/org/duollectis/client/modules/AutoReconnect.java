@@ -2,52 +2,44 @@ package org.duollectis.client.modules;
 
 import it.unimi.dsi.fastutil.Pair;
 import it.unimi.dsi.fastutil.objects.ObjectObjectImmutablePair;
+import lombok.Getter;
 import net.minecraft.client.network.ServerAddress;
 import net.minecraft.client.network.ServerInfo;
-import org.duollectis.client.DuollectisMod;
-import org.duollectis.client.api.event.EventHandler;
+import org.duollectis.client.api.event.Subscribe;
+import org.duollectis.client.api.event.events.GameJoinedEvent;
+import org.duollectis.client.api.modules.Category;
 import org.duollectis.client.api.modules.Module;
 import org.duollectis.client.api.modules.ModuleInfo;
 import org.duollectis.client.settings.BoolSetting;
 import org.duollectis.client.settings.DoubleSetting;
-import org.duollectis.client.settings.Setting;
-import org.duollectis.client.settings.SettingGroup;
+import org.duollectis.client.api.settings.Setting;
 
 @ModuleInfo(
-		name = "auto-reconnect",
-		description = "Automatically reconnects when disconnected from a server."
+        value = "auto-reconnect",
+        category = Category.MISC
 )
 public class AutoReconnect extends Module {
 
-	private final SettingGroup sgGeneral = settings.getDefaultGroup();
+    @Getter
+    private final Setting<Double> time = settings.add(DoubleSetting
+            .create("delay")
+            .defaultValue(3.5)
+            .min(0)
+            .decimalPlaces(1)
+            .done());
 
-	public final Setting<Double> time = sgGeneral.add(new DoubleSetting.Builder()
-			.name("delay")
-			.description("The amount of seconds to wait before reconnecting to the server.")
-			.defaultValue(3.5)
-			.min(0)
-			.decimalPlaces(1)
-			.build()
-	);
+    @Getter
+    private final Setting<Boolean> button = settings.add(BoolSetting
+            .create("hide-buttons")
+            .defaultValue(false)
+            .done());
 
-	public final Setting<Boolean> button = sgGeneral.add(new BoolSetting.Builder()
-			.name("hide-buttons")
-			.description("Will hide the buttons related to Auto Reconnect.")
-			.defaultValue(false)
-			.build()
-	);
+    @Getter
+    private Pair<ServerAddress, ServerInfo> lastServerConnection;
 
-	public Pair<ServerAddress, ServerInfo> lastServerConnection;
+    @Subscribe
+    private void onGameJoined(GameJoinedEvent event) {
+        lastServerConnection = new ObjectObjectImmutablePair<>(event.getAddress(), event.getInfo());
+    }
 
-	public AutoReconnect() {
-
-		DuollectisMod.getEventManager().add(new EventHandler() {
-
-			@Override
-			public void onGameJoined(ServerAddress address, ServerInfo info) {
-				lastServerConnection = new ObjectObjectImmutablePair<>(address, info);
-			}
-		});
-
-	}
 }

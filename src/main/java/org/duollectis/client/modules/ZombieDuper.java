@@ -7,9 +7,6 @@ import net.minecraft.block.Blocks;
 import net.minecraft.block.ChestBlock;
 import net.minecraft.block.ShulkerBoxBlock;
 import net.minecraft.client.gui.screen.DisconnectedScreen;
-import net.minecraft.client.render.GameRenderer;
-import net.minecraft.client.render.VertexConsumerProvider;
-import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.ItemEntity;
@@ -29,11 +26,26 @@ import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
+import org.duollectis.client.api.event.Subscribe;
+import org.duollectis.client.api.event.events.RenderEvent;
+import org.duollectis.client.api.event.events.TickPostEvent;
+import org.duollectis.client.api.event.events.TickPreEvent;
+import org.duollectis.client.api.modules.Category;
 import org.duollectis.client.api.modules.Module;
 import org.duollectis.client.api.modules.ModuleInfo;
 import org.duollectis.client.api.modules.ModuleManager;
+import org.duollectis.client.api.settings.Setting;
 import org.duollectis.client.settings.*;
-import org.duollectis.client.utils.*;
+import org.duollectis.client.utils.color.Color;
+import org.duollectis.client.utils.inventory.FindItemResult;
+import org.duollectis.client.utils.inventory.InvUtility;
+import org.duollectis.client.utils.inventory.InvUtils;
+import org.duollectis.client.utils.network.PacketUtil;
+import org.duollectis.client.utils.network.ScreenHandlerUtil;
+import org.duollectis.client.utils.render.RenderUtils;
+import org.duollectis.client.utils.rotation.RotationUtil;
+import org.duollectis.client.utils.rotation.Rotations;
+import org.duollectis.client.utils.world.MiscUtil;
 
 import java.time.DayOfWeek;
 import java.time.ZoneId;
@@ -43,108 +55,121 @@ import java.util.Iterator;
 import java.util.List;
 
 @ModuleInfo(
-		name = "zombie-duper",
-		description = ""
+		value = "zombie-duper",
+		category = Category.MISC
 )
 public class ZombieDuper extends Module {
 
 	private static final int OPEN_RETRY_DELAY = 10;
 
-	private final SettingGroup sgGeneral = settings.getDefaultGroup();
-
 	{
-		sgGeneral.add(new BoolSetting.Builder()
-				.name("debug")
+		settings.add(BoolSetting
+				.create("debug")
 				.defaultValue(false)
 				.onChanged(v -> debug = v)
-				.build());
+				.done()
+		);
 	}
 
-	private final Setting<Double> chestsRange = sgGeneral.add(new DoubleSetting.Builder()
-			.name("chests-range")
+	private final Setting<Double> chestsRange = settings.add(DoubleSetting
+			.create("chests-range")
 			.defaultValue(5)
-			.build());
+			.done()
+	);
 
-	private final Setting<Double> zombieRange = sgGeneral.add(new DoubleSetting.Builder()
-			.name("zombie-range")
+	private final Setting<Double> zombieRange = settings.add(DoubleSetting
+			.create("zombie-range")
 			.defaultValue(4)
-			.build());
+			.done()
+	);
 
-	private final Setting<Double> countRange = sgGeneral.add(new DoubleSetting.Builder()
-			.name("count-range")
+	private final Setting<Double> countRange = settings.add(DoubleSetting
+			.create("count-range")
 			.defaultValue(2)
-			.build());
+			.done()
+	);
 
-	private final Setting<Double> zombieTrashRange = sgGeneral.add(new DoubleSetting.Builder()
-			.name("zombie-trash-range")
+	private final Setting<Double> zombieTrashRange = settings.add(DoubleSetting
+			.create("zombie-trash-range")
 			.defaultValue(3)
-			.build());
+			.done()
+	);
 
-	private final Setting<Double> speed = sgGeneral.add(new DoubleSetting.Builder()
-			.name("speed")
+	private final Setting<Double> speed = settings.add(DoubleSetting
+			.create("speed")
 			.defaultValue(0.1)
 			.range(0.1, 1)
-			.build());
+			.done()
+	);
 
-	private final Setting<Integer> delay = sgGeneral.add(new IntSetting.Builder()
-			.name("delay")
+	private final Setting<Integer> delay = settings.add(IntSetting
+			.create("delay")
 			.defaultValue(3)
-			.build());
+			.done()
+	);
 
-	private final Setting<Integer> dropPerTick = sgGeneral.add(new IntSetting.Builder()
-			.name("drop-per-tick")
+	private final Setting<Integer> dropPerTick = settings.add(IntSetting
+			.create("drop-per-tick")
 			.min(1)
 			.sliderRange(1, 36)
 			.defaultValue(1)
-			.build());
+			.done()
+	);
 
-	private final Setting<Integer> nametagAmount = sgGeneral.add(new IntSetting.Builder()
-			.name("nametag-amount")
+	private final Setting<Integer> nametagAmount = settings.add(IntSetting
+			.create("nametag-amount")
 			.min(0)
 			.range(1, 10)
 			.defaultValue(5)
-			.build());
+			.done()
+	);
 
-	private final Setting<Integer> nametagSlot = sgGeneral.add(new IntSetting.Builder()
-			.name("nametag-slot")
+	private final Setting<Integer> nametagSlot = settings.add(IntSetting
+			.create("nametag-slot")
 			.range(1, 9)
 			.defaultValue(5)
-			.build());
+			.done()
+	);
 
-	private final Setting<Integer> refreshDelay = sgGeneral.add(new IntSetting.Builder()
-			.name("refresh-delay")
+	private final Setting<Integer> refreshDelay = settings.add(IntSetting
+			.create("refresh-delay")
 			.min(1)
 			.sliderRange(40, 20 * 60)
 			.defaultValue(20 * 10)
-			.build());
+			.done()
+	);
 
-	private final Setting<Integer> swordSlot = sgGeneral.add(new IntSetting.Builder()
-			.name("sword-slot")
+	private final Setting<Integer> swordSlot = settings.add(IntSetting
+			.create("sword-slot")
 			.range(1, 9)
 			.defaultValue(9)
-			.build());
+			.done()
+	);
 
-	private final Setting<Integer> maxFullSlots = sgGeneral.add(new IntSetting.Builder()
-			.name("max-full-slots")
+	private final Setting<Integer> maxFullSlots = settings.add(IntSetting
+			.create("max-full-slots")
 			.min(1)
 			.sliderRange(10, 36)
 			.defaultValue(32)
-			.build());
+			.done()
+	);
 
-	private final Setting<Integer> minShulkers = sgGeneral.add(new IntSetting.Builder()
-			.name("min-shulkers")
+	private final Setting<Integer> minShulkers = settings.add(IntSetting
+			.create("min-shulkers")
 			.min(1)
 			.sliderRange(4, 30)
 			.defaultValue(8)
-			.build());
+			.done()
+	);
 
-	private final Setting<Boolean> disableOnSaturdayOver = sgGeneral.add(new BoolSetting.Builder()
-			.name("disable-on-saturday-over")
+	private final Setting<Boolean> disableOnSaturdayOver = settings.add(BoolSetting
+			.create("disable-on-saturday-over")
 			.defaultValue(true)
-			.build());
+			.done()
+	);
 
-	private final Setting<List<Item>> trashItems = sgGeneral.add(new ItemListSetting.Builder()
-			.name("trash-items")
+	private final Setting<List<Item>> trashItems = settings.add(ItemListSetting
+			.create("trash-items")
 			.defaultValue(List.of(
 					Items.ROTTEN_FLESH,
 					Items.CHICKEN,
@@ -162,7 +187,8 @@ public class ZombieDuper extends Module {
 					Items.GOLDEN_CHESTPLATE,
 					Items.GUNPOWDER
 			))
-			.build());
+			.done()
+	);
 
 	private final List<BlockPos> ignoredChests = new ArrayList<>();
 	private final List<BlockPos> ignoredNametagChests = new ArrayList<>();
@@ -233,11 +259,11 @@ public class ZombieDuper extends Module {
 		}
 	}
 
-	@Override
-	public void onRender(MatrixStack matrices, GameRenderer gameRenderer, VertexConsumerProvider consumers) {
+	@Subscribe
+	private void onRender(RenderEvent event) {
 		if (zombiesPos != null) {
 			RenderUtils.drawLinesBox(
-					matrices,
+					event.getMatrices(),
 					zombiesPos,
 					Color.GREEN.a(200).getPacked()
 			);
@@ -245,7 +271,7 @@ public class ZombieDuper extends Module {
 
 		if (chestPos != null) {
 			RenderUtils.drawLinesBox(
-					matrices,
+					event.getMatrices(),
 					chestPos,
 					Color.CYAN.a(200).getPacked()
 			);
@@ -300,12 +326,10 @@ public class ZombieDuper extends Module {
 
 			offset = getOffset(
 					mc.player.getEntityPos(),
-					RotationUtil
-							.fromDirection(
-									getShulkerSide(
-											mc.player.getEntityPos(),
-											zombiesPos.toCenterPos()
-									).getOpposite())
+					RotationUtil.fromDirection(getShulkerSide(
+							mc.player.getEntityPos(),
+							zombiesPos.toCenterPos()
+					).getOpposite())
 			);
 		}
 
@@ -321,16 +345,15 @@ public class ZombieDuper extends Module {
 		double diffZ = targetZ - ppos.z;
 		if (!(Math.abs(diffX) > 0.05) && !(Math.abs(diffZ) > 0.05)) {
 			debugInfo("Standing");
-			this.mc.player.setPosition(targetX, ppos.y, targetZ);
+			mc.player.setPosition(targetX, ppos.y, targetZ);
 		}
 		else {
 			debugInfo("Moving");
 
-			this.mc.player
-					.setPosition(
-							ppos.x + Math.max(-speed, Math.min(speed, diffX)), ppos.y,
-							ppos.z + Math.max(-speed, Math.min(speed, diffZ))
-					);
+			mc.player.setPosition(
+					ppos.x + Math.max(-speed, Math.min(speed, diffX)), ppos.y,
+					ppos.z + Math.max(-speed, Math.min(speed, diffZ))
+			);
 		}
 
 		if (zombieCount > shulkerCount) {
@@ -724,11 +747,11 @@ public class ZombieDuper extends Module {
 
 		if (openedChest && !isContainerScreenOpen()) {
 			if (openTimer <= 0) { // Если время ожидания вышло
-				if (chestPos != null) {
-					ensureContainerOpen(chestPos); // Повторная попытка
+				if (chestPos == null) {
+					openedChest = false;
 				}
 				else {
-					openedChest = false;
+					ensureContainerOpen(chestPos); // Повторная попытка
 				}
 			}
 			return;
@@ -894,8 +917,8 @@ public class ZombieDuper extends Module {
 		return true;
 	}
 
-	@Override
-	public void onTickPre() {
+	@Subscribe
+	private void onTickPre(TickPreEvent event) {
 		if (mc.player == null || mc.world == null) {
 			return;
 		}
@@ -953,8 +976,8 @@ public class ZombieDuper extends Module {
 		}
 	}
 
-	@Override
-	public void onTickPost() {
+	@Subscribe
+	private void onTickPost(TickPostEvent event) {
 		nametagRefreshTimer--;
 		chestsRefreshTimer--;
 		openTimer--;

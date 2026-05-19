@@ -1,31 +1,31 @@
 package org.duollectis.client.settings;
 
-import com.google.gson.JsonObject;
-import net.minecraft.nbt.NbtCompound;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonPrimitive;
+import org.duollectis.client.api.settings.Setting;
 import org.duollectis.client.utils.IVisible;
+import org.duollectis.client.utils.color.Color;
 
-import java.awt.*;
 import java.util.function.Consumer;
 
 public class ColorSetting extends Setting<Color> {
 
-	public ColorSetting(
-			String name,
-			String description,
+	private ColorSetting(
+			String id,
+			String group,
 			Color defaultValue,
 			Consumer<Color> onChanged,
 			Consumer<Setting<Color>> onModuleActivated,
 			IVisible visible
 	) {
-		super(name, description, defaultValue, onChanged, onModuleActivated, visible);
+		super(id, group, defaultValue, onChanged, onModuleActivated, visible);
 	}
 
 	@Override
 	protected Color parseImpl(String str) {
 		try {
-			return new Color(Integer.parseUnsignedInt(str, 16), true);
-		}
-		catch (NumberFormatException e) {
+			return new Color((int) Long.parseLong(str.trim(), 16));
+		} catch (NumberFormatException ignored) {
 			return defaultValue;
 		}
 	}
@@ -36,30 +36,42 @@ public class ColorSetting extends Setting<Color> {
 	}
 
 	@Override
-	protected JsonObject save(JsonObject tag) {
-		// Сохраняем цвет как единое RGBA число типа int
-		tag.addProperty("value", value.getRGB());
-		return tag;
+	public JsonElement writeValue() {
+		return new JsonPrimitive(value.getPacked());
 	}
 
 	@Override
-	protected Color load(JsonObject tag) {
-		if (tag.has("value")) {
-			return new Color(tag.get("value").getAsInt(), true);
-		}
-
-		return defaultValue;
+	public void readValue(JsonElement element) {
+		set(new Color(element.getAsInt()));
 	}
 
-	// Классический Билдер в стиле Метеора
+	public static Builder create(String id) {
+		return new Builder(id);
+	}
+
 	public static class Builder extends SettingBuilder<Builder, Color, ColorSetting> {
 
-		public Builder() {
-			super(new Color(255, 255, 255, 255)); // Белый по умолчанию
+		private Builder(String id) {
+			super(id, new Color(255, 255, 255, 255));
 		}
 
-		public ColorSetting build() {
-			return new ColorSetting(name, description, defaultValue, onChanged, onModuleActivated, visible);
+		public Builder defaultValue(Color defaultValue) {
+			this.defaultValue = defaultValue;
+			return this;
 		}
+
+		@Override
+		public ColorSetting done() {
+			return new ColorSetting(
+					id,
+					group,
+					defaultValue,
+					onChanged,
+					onModuleActivated,
+					visible
+			);
+		}
+
 	}
+
 }

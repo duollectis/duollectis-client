@@ -1,20 +1,12 @@
-/*
- * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
- * Copyright (c) Meteor Development.
- */
-
 package org.duollectis.client.settings;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
+import lombok.Getter;
 import net.minecraft.item.Item;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtElement;
-import net.minecraft.nbt.NbtList;
-import net.minecraft.nbt.NbtString;
 import net.minecraft.registry.Registries;
 import net.minecraft.util.Identifier;
+import org.duollectis.client.api.settings.Setting;
 import org.duollectis.client.utils.IVisible;
 
 import java.util.ArrayList;
@@ -24,12 +16,14 @@ import java.util.function.Predicate;
 
 public class ItemListSetting extends Setting<List<Item>> {
 
-	public final Predicate<Item> filter;
+	@Getter
+	private final Predicate<Item> filter;
+
 	private final boolean bypassFilterWhenSavingAndLoading;
 
-	public ItemListSetting(
-			String name,
-			String description,
+	private ItemListSetting(
+			String id,
+			String group,
 			List<Item> defaultValue,
 			Consumer<List<Item>> onChanged,
 			Consumer<Setting<List<Item>>> onModuleActivated,
@@ -37,7 +31,7 @@ public class ItemListSetting extends Setting<List<Item>> {
 			Predicate<Item> filter,
 			boolean bypassFilterWhenSavingAndLoading
 	) {
-		super(name, description, defaultValue, onChanged, onModuleActivated, visible);
+		super(id, group, defaultValue, onChanged, onModuleActivated, visible);
 
 		this.filter = filter;
 		this.bypassFilterWhenSavingAndLoading = bypassFilterWhenSavingAndLoading;
@@ -45,17 +39,19 @@ public class ItemListSetting extends Setting<List<Item>> {
 
 	@Override
 	protected List<Item> parseImpl(String str) {
-		String[] values = str.split(",");
-		List<Item> items = new ArrayList<>(values.length);
+		String[] parts = str.split(",");
+		List<Item> items = new ArrayList<>(parts.length);
 
-		try {
-			for (String value : values) {
-				Item item = parseId(Registries.ITEM, value);
-				if (item != null && (filter == null || filter.test(item)))
-					items.add(item);
+		for (String part : parts) {
+			Item item = parseId(Registries.ITEM, part);
+
+			if (item == null) {
+				continue;
 			}
-		}
-		catch (Exception ignored) {
+
+			if (filter == null || filter.test(item)) {
+				items.add(item);
+			}
 		}
 
 		return items;
@@ -77,49 +73,59 @@ public class ItemListSetting extends Setting<List<Item>> {
 	}
 
 	@Override
-	public JsonObject save(JsonObject tag) {
-		JsonArray valueTag = new JsonArray();
+	public JsonElement writeValue() {
+		JsonArray array = new JsonArray();
 
 		for (Item item : get()) {
-			if (bypassFilterWhenSavingAndLoading || (filter == null || filter.test(item))) {
-				valueTag.add(Registries.ITEM.getId(item).toString());
+			if (bypassFilterWhenSavingAndLoading || filter == null || filter.test(item)) {
+				array.add(Registries.ITEM.getId(item).toString());
 			}
 		}
 
-		tag.add("value", valueTag);
-
-		return tag;
+		return array;
 	}
 
 	@Override
-	public List<Item> load(JsonObject tag) {
+	public void readValue(JsonElement element) {
 		get().clear();
 
-		JsonArray valueTag = tag.has("value") ? tag.getAsJsonArray("value") : new JsonArray();
+		for (JsonElement entry : element.getAsJsonArray()) {
+			Item item = Registries.ITEM.get(Identifier.of(entry.getAsString()));
 
-		for (JsonElement tagI : valueTag) {
-			Item item = Registries.ITEM.get(Identifier.of(tagI.getAsString()));
-
-			if (bypassFilterWhenSavingAndLoading || (filter == null || filter.test(item)))
+			if (bypassFilterWhenSavingAndLoading || filter == null || filter.test(item)) {
 				get().add(item);
+			}
 		}
+	}
 
-		return get();
+	public static Builder create(String id) {
+		return new Builder(id);
 	}
 
 	public static class Builder extends SettingBuilder<Builder, List<Item>, ItemListSetting> {
 
 		private Predicate<Item> filter;
-		private boolean bypassFilterWhenSavingAndLoading;
+		private boolean bypassFilterWhenSavingAndLoading = false;
 
-		public Builder() {
-			super(new ArrayList<>(0));
+		private Builder(String id) {
+			super(id, new ArrayList<>(0));
 		}
 
-		public ItemListSetting build() {
+		public Builder filter(Predicate<Item> filter) {
+			this.filter = filter;
+			return this;
+		}
+
+		public Builder bypassFilter() {
+			this.bypassFilterWhenSavingAndLoading = true;
+			return this;
+		}
+
+		@Override
+		public ItemListSetting done() {
 			return new ItemListSetting(
-					name,
-					description,
+					id,
+					group,
 					defaultValue,
 					onChanged,
 					onModuleActivated,
@@ -128,5 +134,7 @@ public class ItemListSetting extends Setting<List<Item>> {
 					bypassFilterWhenSavingAndLoading
 			);
 		}
+
 	}
+
 }

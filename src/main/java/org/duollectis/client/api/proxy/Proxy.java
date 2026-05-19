@@ -5,90 +5,131 @@ import com.google.gson.annotations.SerializedName;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.EnumSet;
 import java.util.Objects;
 
 @Getter
 public class Proxy {
 
-	// ── persisted fields (serialised by Gson via @Expose) ─────────────────────
-	@Setter @Expose private String name;
-	@Setter @Expose private String address;
-	@Setter @Expose private int    port;
-	/** Null means type not yet determined (freshly imported, not checked). */
-	@Setter @Expose @SerializedName("type") private Type type;
-	@Setter @Expose private String username;
-	@Setter @Expose private String password;
+    @Setter
+    @Expose
+    private String name;
 
-	// ── runtime fields (also persisted so state survives restarts) ────────────
-	@Setter @Expose private volatile Status status    = Status.UNKNOWN;
-	@Setter @Expose private volatile long latency = -1;
-	@Setter @Expose private volatile int    pingCount = 0;
+    @Setter
+    @Expose
+    private String address;
 
-	// ── full constructor ──────────────────────────────────────────────────────
-	public Proxy(String name, String address, int port, Type type, String username, String password) {
-		this.name     = (name == null || name.isBlank()) ? address + ":" + port : name;
-		this.address  = address;
-		this.port     = port;
-		this.type     = type;
-		this.username = username;
-		this.password = password;
-	}
+    @Setter
+    @Expose
+    private int port;
 
-	/** Minimal constructor used by AddressParser (type unknown yet). */
-	public Proxy(String address, int port) {
-		this.name    = address + ":" + port;
-		this.address = address;
-		this.port    = port;
-		this.type    = null; // unknown until checked
-	}
+    @Setter
+    @Expose
+    @SerializedName("type")
+    private Type type;
 
-	/**
-	 * Called after Gson deserialisation to restore runtime defaults
-	 * (Gson bypasses constructors via Unsafe, so volatile fields get JVM defaults).
-	 */
-	public void initRuntimeFields() {
-		if (status == null)    status = Status.UNKNOWN;
-		// If proxy was mid-check when saved, reset it back to UNKNOWN
-		if (status == Status.CHECKING) status = Status.UNKNOWN;
-		// ping=0 with pingCount=0 means Unsafe default (never set), restore to -1
-		if (latency == 0 && pingCount == 0) latency = -1;
-	}
+    @Setter
+    @Expose
+    @SerializedName("supportedTypes")
+    private EnumSet<Type> supportedTypes;
 
-	/** Returns true if this proxy is in any "failed" state (not OK, not UNKNOWN, not CHECKING). */
-	public boolean isFailed() {
-		return status == Status.FAILED
-			|| status == Status.DEAD_IP
-			|| status == Status.DEAD_SERVER
-			|| status == Status.PING_ERROR;
-	}
+    @Setter
+    @Expose
+    private String username;
 
-	@Override
-	public boolean equals(Object o) {
-		if (!(o instanceof Proxy proxy)) return false;
-		return port == proxy.port && Objects.equals(address, proxy.address);
-	}
+    @Setter
+    @Expose
+    private String password;
 
-	@Override
-	public int hashCode() {
-		return Objects.hash(address, port);
-	}
+    @Setter
+    @Expose
+    private volatile Status status = Status.UNKNOWN;
 
-	// ── enums ─────────────────────────────────────────────────────────────────
-	public enum Status {
-		UNKNOWN     (0xFF666666),  // not yet checked
-		CHECKING    (0xFFFFCC44),  // currently being checked
-		OK          (0xFF44FF88),  // all 3 stages passed
-		FAILED      (0xFFFF4444),  // generic failure (legacy / cancelled)
-		DEAD_IP     (0xFFFF6622),  // stage 1 failed: TCP connect to proxy host timed out
-		DEAD_SERVER (0xFFFF4488),  // stage 2 failed: SOCKS handshake rejected
-		PING_ERROR  (0xFFFFAA00);  // stage 3 failed: could not reach target through proxy
+    @Setter
+    @Expose
+    private volatile long latency = -1;
 
-		public final int color;
-		Status(int color) { this.color = color; }
-	}
+    @Setter
+    @Expose
+    private volatile int pingCount = 0;
 
-	public enum Type {
-		SOCKS4,
-		SOCKS5,
-	}
+    public Proxy(String name, String address, int port, Type type, String username, String password) {
+        this.name = (name == null || name.isBlank()) ? address + ":" + port : name;
+        this.address = address;
+        this.port = port;
+        this.type = type;
+        this.username = username;
+        this.password = password;
+    }
+
+    /** Minimal constructor used by AddressParser (type unknown until checked). */
+    public Proxy(String address, int port) {
+        this.name = address + ":" + port;
+        this.address = address;
+        this.port = port;
+        this.type = null;
+    }
+
+    /**
+     * Restores runtime defaults after Gson deserialisation.
+     * Gson bypasses constructors via Unsafe, so volatile fields get JVM defaults.
+     */
+    public void initRuntimeFields() {
+        if (status == null || status == Status.CHECKING) {
+            status = Status.UNKNOWN;
+        }
+        if (latency == 0 && pingCount == 0) {
+            latency = -1;
+        }
+        if (supportedTypes == null) {
+            supportedTypes = type != null ? EnumSet.of(type) : EnumSet.noneOf(Type.class);
+        }
+    }
+
+    /** True if this proxy supports both SOCKS4 and SOCKS5. */
+    public boolean isDualType() {
+        return supportedTypes != null && supportedTypes.size() > 1;
+    }
+
+    /** True if this proxy is in any terminal failure state. */
+    public boolean isFailed() {
+        return switch (status) {
+            case FAILED, DEAD_IP, DEAD_SERVER, PING_ERROR -> true;
+            default -> false;
+        };
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (!(o instanceof Proxy other)) {
+            return false;
+        }
+        return port == other.port && Objects.equals(address, other.address);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(address, port);
+    }
+
+    public enum Status {
+        UNKNOWN(0xFF666666),
+        CHECKING(0xFFFFCC44),
+        OK(0xFF44FF88),
+        FAILED(0xFFFF4444),
+        DEAD_IP(0xFFFF6622),
+        DEAD_SERVER(0xFFFF4488),
+        PING_ERROR(0xFFFFAA00);
+
+        public final int color;
+
+        Status(int color) {
+            this.color = color;
+        }
+    }
+
+    public enum Type {
+        SOCKS4,
+        SOCKS5,
+    }
 }

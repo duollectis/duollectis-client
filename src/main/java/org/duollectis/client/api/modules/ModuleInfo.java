@@ -9,6 +9,6 @@ import java.lang.annotation.Target;
 @Target(ElementType.TYPE)
 public @interface ModuleInfo {
 
-	String name();
-	String description();
+	String value();
+	Category category() default Category.NONE;
 }

@@ -3,42 +3,51 @@ package org.duollectis.client.api.modules;
 import com.google.gson.JsonObject;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtElement;
 import net.minecraft.text.Style;
 import net.minecraft.text.Text;
-import org.duollectis.client.api.event.EventHandler;
-import org.duollectis.client.settings.Settings;
+import org.duollectis.client.api.event.Event;
+import org.duollectis.client.api.event.EventBus;
+import org.duollectis.client.api.event.Subscribe;
+import org.duollectis.client.api.settings.Settings;
 import org.duollectis.client.utils.ISerializable;
-import org.duollectis.client.utils.Utils;
+import org.duollectis.client.utils.ITranslatable;
 
-public class Module implements EventHandler, ISerializable<Module> {
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Consumer;
 
-	public static final MinecraftClient mc = MinecraftClient.getInstance();
+@Slf4j
+public class Module implements ISerializable, ITranslatable {
+
+	private static final String TRANSLATION_PATH = "duollectis.client.modules.";
+
+	protected static final MinecraftClient mc = MinecraftClient.getInstance();
+
+	private final List<ListenerEntry<?>> registeredListeners = new ArrayList<>();
 
 	@Getter
-	protected final Settings settings = new Settings();
+	protected final Settings settings = new Settings(this);
 
 	@Getter
 	@Setter
 	private boolean active;
 
-	@Getter
-	private String name;
-
-	@Getter
-	private String title;
-
-	@Getter
 	@Setter
-	private String description;
+	@Getter
+	private String id;
 
 	protected boolean debug;
 
-	public void setName(String name) {
-		this.name = name;
-		this.title = Utils.nameToTitle(name);
+	public Module() {
+		scanSubscribeMethods();
+	}
+
+	@Override
+	public String getTranslationPath() {
+		return TRANSLATION_PATH + id;
 	}
 
 	public void toggle() {
@@ -50,8 +59,8 @@ public class Module implements EventHandler, ISerializable<Module> {
 		}
 	}
 
-	public void toggle(boolean active) {
-		if (active) {
+	public void toggle(boolean shouldBeActive) {
+		if (shouldBeActive) {
 			enable();
 		}
 		else {
@@ -60,24 +69,99 @@ public class Module implements EventHandler, ISerializable<Module> {
 	}
 
 	public void enable() {
-		if (!active) {
-			active = true;
-			onActivate();
-			info("Activated");
+		if (active) {
+			return;
 		}
+
+		active = true;
+		onActivate();
+		subscribeAll();
+		info("Activated");
 	}
 
 	public void disable() {
-		if (active) {
-			active = false;
-			onDeactivate();
-			info("Deactivated");
+		if (active == false) {
+			return;
 		}
+
+		active = false;
+		unsubscribeAll();
+		onDeactivate();
+		info("Deactivated");
 	}
 
 	protected void onActivate() {}
 
 	protected void onDeactivate() {}
+
+	protected <T extends Event> void on(Class<T> eventType, Consumer<T> listener) {
+		registeredListeners.add(new ListenerEntry<>(eventType, listener));
+	}
+
+	private void subscribeAll() {
+		EventBus bus = EventBus.getInstance();
+
+		for (ListenerEntry<?> entry : registeredListeners) {
+			entry.subscribe(bus);
+		}
+	}
+
+	private void unsubscribeAll() {
+		EventBus bus = EventBus.getInstance();
+
+		for (ListenerEntry<?> entry : registeredListeners) {
+			entry.unsubscribe(bus);
+		}
+	}
+
+	@SuppressWarnings({"unchecked", "rawtypes"})
+	private void scanSubscribeMethods() {
+		Class<?> clazz = getClass();
+
+		while (clazz != null && clazz != Object.class) {
+			for (Method method : clazz.getDeclaredMethods()) {
+				if (method.getAnnotation(Subscribe.class) == null) {
+					continue;
+				}
+
+				if (method.getParameterCount() != 1) {
+					log.warn(
+							"Метод @Subscribe '{}' в '{}' должен иметь ровно один параметр — тип события",
+							method.getName(), getClass().getSimpleName()
+					);
+					continue;
+				}
+
+				Class<?> paramType = method.getParameterTypes()[0];
+
+				if (Event.class.isAssignableFrom(paramType) == false) {
+					log.warn(
+							"Параметр метода @Subscribe '{}' в '{}' должен реализовывать Event",
+							method.getName(), getClass().getSimpleName()
+					);
+					continue;
+				}
+
+				method.setAccessible(true);
+
+				Consumer<Event> listener = event -> {
+					try {
+						method.invoke(this, event);
+					}
+					catch (Exception e) {
+						log.error(
+								"Ошибка в @Subscribe методе '{}' модуля '{}'",
+								method.getName(), getClass().getSimpleName(), e
+						);
+					}
+				};
+
+				registeredListeners.add(new ListenerEntry<>((Class) paramType, listener));
+			}
+
+			clazz = clazz.getSuperclass();
+		}
+	}
 
 	public void debugInfo(Object arg) {
 		if (debug) {
@@ -100,57 +184,65 @@ public class Module implements EventHandler, ISerializable<Module> {
 		disable();
 	}
 
-
 	public void info(Object arg) {
-		addMessage(arg, 0x60FF60);
+		addMessage(tr.translate(getTranslationPath()), arg, 0x60FF60);
 	}
 
 	public void warning(Object arg) {
-		addMessage(arg, 0xFFFF60);
+		addMessage(tr.translate(getTranslationPath()), arg, 0xFFFF60);
 	}
 
 	public void error(Object arg) {
-		addMessage(arg, 0xFF6060);
+		addMessage(tr.translate(getTranslationPath()), arg, 0xFF6060);
 	}
 
-	private static void addMessage(Object arg, int color) {
+	@Override
+	public JsonObject toJson() {
+		JsonObject json = new JsonObject();
+		JsonObject settingsTag = new JsonObject();
+
+		settings.write(settingsTag);
+
+		json.addProperty("active", active);
+		json.add("settings", settingsTag);
+
+		return json;
+	}
+
+	@Override
+	public void fromJson(JsonObject json) {
+		if (json.has("settings")) {
+			settings.read(json.getAsJsonObject("settings"));
+		}
+
+		boolean savedActive = json.has("active") && json.get("active").getAsBoolean();
+
+		if (savedActive != isActive()) {
+			toggle();
+		}
+	}
+
+	private static void addMessage(String name, Object arg, int color) {
 		if (mc.inGameHud == null || mc.inGameHud.getChatHud() == null) {
 			return;
 		}
 
-		mc.inGameHud.getChatHud().addMessage(Text
-				.literal(String.valueOf(arg))
-				.setStyle(Style.EMPTY.withColor(color))
+		mc.inGameHud.getChatHud().addMessage(
+				Text.literal("[%s] %s".formatted(name, arg))
+				    .setStyle(Style.EMPTY.withColor(color))
 		);
 	}
 
-	@Override
-	public JsonObject toTag() {
-		JsonObject tag = new JsonObject();
+	private record ListenerEntry<T extends Event>(Class<T> eventType, Consumer<T> listener) {
 
-		tag.addProperty("name", name);
-		//		tag.put("keybind", keybind.toTag());
-		tag.add("settings", settings.toTag());
-		tag.addProperty("active", active);
-
-		return tag;
-	}
-
-	@Override
-	public Module fromTag(JsonObject tag) {
-
-		//		keybind.fromTag(tag.getCompoundOrEmpty("keybind"));
-
-		JsonObject settingsTag = tag.get("settings").getAsJsonObject();
-
-		settings.fromTag(settingsTag);
-
-		boolean active = tag.has("active") && tag.get("active").getAsBoolean();
-
-		if (active != isActive()) {
-			toggle();
+		void subscribe(EventBus bus) {
+			bus.subscribe(eventType, listener);
 		}
 
-		return this;
+		void unsubscribe(EventBus bus) {
+			bus.unsubscribe(eventType, listener);
+		}
+
 	}
+
 }

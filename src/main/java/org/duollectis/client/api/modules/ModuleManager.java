@@ -1,118 +1,107 @@
 package org.duollectis.client.api.modules;
 
-import com.google.gson.*;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import it.unimi.dsi.fastutil.objects.Reference2ReferenceOpenHashMap;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.fabricmc.loader.api.FabricLoader;
-import org.duollectis.client.api.event.EventManager;
-import org.duollectis.client.modules.*;
 import org.duollectis.client.utils.JsonHelper;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 
 @Slf4j
-public class ModuleManager extends EventManager<Module> {
+public final class ModuleManager {
+
+	private static final String MODULE_REGISTRY = "META-INF/duollectis-modules";
 
 	@Getter
 	private static final ModuleManager instance = new ModuleManager();
 
+	private final List<Module> modules = new ArrayList<>();
 	private final Map<Class<? extends Module>, Module> instanceMap = new Reference2ReferenceOpenHashMap<>();
 
 	private ModuleManager() {
-		add(new ZombieDuper());
-		add(new AutoGap());
-		add(new AutoLog());
-		add(new AutoReconnect());
-		add(new TestModule());
-		add(new VelocityModule());
-
+		loadModulesFromRegistry();
 		load();
 	}
 
+	public void add(Module module) {
+		ModuleInfo info = module.getClass().getAnnotation(ModuleInfo.class);
+		module.setId(info.value());
+
+		modules.add(module);
+		instanceMap.put(module.getClass(), module);
+	}
+
 	public void disableAll() {
-		all().forEach(Module::disable);
+		modules.forEach(Module::disable);
 	}
-
-	public JsonObject toTag() {
-		JsonObject tag = new JsonObject();
-
-		JsonArray modulesTag = new JsonArray();
-
-		for (Module module : all()) {
-			JsonObject moduleTag = module.toTag();
-			if (moduleTag != null)
-				modulesTag.add(moduleTag);
-		}
-
-		tag.add("modules", modulesTag);
-
-		return tag;
-	}
-
 
 	public void save() {
+		File file = resolveConfigFile();
+		JsonObject root = new JsonObject();
+		JsonObject modulesTag = new JsonObject();
 
-		File minecraftDir = FabricLoader.getInstance().getGameDir().toFile();
+		for (Module module : modules) {
+			modulesTag.add(module.getId(), module.toJson());
+		}
 
-		File file = new File(minecraftDir, "duollectis/settings.json");
-
-		JsonObject tag = toTag();
-
-		System.out.println(tag);
-
-		if (tag == null)
-			return;
-
+		root.add("modules", modulesTag);
 		file.getParentFile().mkdirs();
 
 		try (FileWriter writer = new FileWriter(file)) {
-			JsonHelper.GSON.toJson(tag, writer);
+			JsonHelper.GSON.toJson(root, writer);
 		}
 		catch (IOException e) {
-			e.printStackTrace();
+			log.error("Не удалось сохранить настройки модулей", e);
 		}
 	}
 
 	public void load() {
-		File minecraftDir = FabricLoader.getInstance().getGameDir().toFile();
+		File file = resolveConfigFile();
 
-		File file = new File(minecraftDir, "duollectis/settings.json");
-
-		if (!file.exists()) {
+		if (file.exists() == false) {
 			return;
 		}
 
 		try (FileReader reader = new FileReader(file)) {
+			JsonObject root = JsonParser.parseReader(reader).getAsJsonObject();
 
-			JsonObject object = JsonParser.parseReader(reader).getAsJsonObject();
+			if (root.has("modules") == false) {
+				return;
+			}
 
 			disableAll();
 
-			for (JsonElement moduleTagI : object.get("modules").getAsJsonArray()) {
-				JsonObject moduleTag = moduleTagI.getAsJsonObject();
+			JsonObject modulesTag = root.getAsJsonObject("modules");
 
-				Module module = get(moduleTag.get("name").getAsString());
-
-				if (module != null) {
-					module.fromTag(moduleTag);
+			for (Module module : modules) {
+				if (modulesTag.has(module.getId()) == false) {
+					continue;
 				}
-			}
 
+				module.fromJson(modulesTag.getAsJsonObject(module.getId()));
+			}
 		}
-		catch (IOException e) {
-			e.printStackTrace();
+		catch (Exception e) {
+			log.error("Не удалось загрузить настройки модулей", e);
 		}
 	}
 
-
 	public Collection<Module> all() {
-		return childs;
+		return List.copyOf(modules);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -121,21 +110,52 @@ public class ModuleManager extends EventManager<Module> {
 	}
 
 	public Module get(String name) {
-		for (Module module : all()) {
-			if (module.getName().equalsIgnoreCase(name))
-				return module;
+		return modules.stream()
+		              .filter(m -> m.getId().equalsIgnoreCase(name))
+		              .findFirst()
+		              .orElse(null);
+	}
+
+	private void loadModulesFromRegistry() {
+		InputStream stream = getClass().getClassLoader().getResourceAsStream(MODULE_REGISTRY);
+
+		if (stream == null) {
+			log.warn("Реестр модулей не найден: {}", MODULE_REGISTRY);
+			return;
 		}
 
-		return null;
+		try (BufferedReader reader = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8))) {
+			String line;
+
+			while ((line = reader.readLine()) != null) {
+				String className = line.trim();
+
+				if (className.isEmpty()) {
+					continue;
+				}
+
+				instantiateModule(className);
+			}
+		}
+		catch (IOException e) {
+			log.error("Не удалось прочитать реестр модулей", e);
+		}
 	}
 
-	@Override
-	public Module add(Module module) {
-		ModuleInfo info = module.getClass().getAnnotation(ModuleInfo.class);
-		module.setName(info.name());
-		module.setDescription(info.description());
-
-		instanceMap.put(module.getClass(), module);
-		return super.add(module);
+	private void instantiateModule(String className) {
+		try {
+			Class<?> clazz = Class.forName(className);
+			Module module = (Module) clazz.getDeclaredConstructor().newInstance();
+			add(module);
+		}
+		catch (Exception e) {
+			log.error("Не удалось создать модуль: {}", className, e);
+		}
 	}
+
+	private static File resolveConfigFile() {
+		File minecraftDir = FabricLoader.getInstance().getGameDir().toFile();
+		return new File(minecraftDir, "duollectis/settings.json");
+	}
+
 }

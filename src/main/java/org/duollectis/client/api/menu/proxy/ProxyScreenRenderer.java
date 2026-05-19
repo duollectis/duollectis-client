@@ -8,123 +8,224 @@ import org.duollectis.client.api.proxy.ProxyManager;
 
 import java.util.List;
 
-import static org.duollectis.client.api.menu.proxy.ProxyScreenKeys.*;
 import static org.duollectis.client.api.menu.proxy.ProxyScreenUtil.*;
 import static org.duollectis.client.api.menu.proxy.ProxyScreenLayout.*;
 
-/**
- * Per-frame rendering helpers for {@link ProxyScreen}.
- *
- * <p>All methods are static and receive the screen as the first parameter so
- * they can read its package-private fields without subclassing.
- */
 final class ProxyScreenRenderer {
-    private ProxyScreenRenderer() {}
 
-    /**
-     * Renders both proxy list columns with mouse coordinates for hover effects.
-     */
-    static void renderLists(ProxyScreen s, DrawContext ctx,
-                            List<Proxy> rawList, List<Proxy> okList,
-                            int mx, int my) {
-        int lw = s.lw(), ly = s.ly(), rlh = s.rlh(), olh = s.olh();
+	private ProxyScreenRenderer() {}
 
-        s.rawScroll = Math.min(s.rawScroll, Math.max(0, rawList.size() - s.mrv()));
-        ProxyListRenderer.renderRawList(ctx, s.tr(), rawList, s.editingProxy,
-                s.lx(), ly, lw, rlh, s.rawScroll, s.mrv(), mx, my);
+	static void renderList(ProxyScreen s, DrawContext ctx, List<ProxyListEntry> entries, int mx, int my) {
+		int lx = s.lx(), ly = s.ly(), lw = s.lw(), lh = s.lh();
 
-        Proxy active = ProxyManager.getInstance().getActiveProxy();
-        s.okScroll = Math.min(s.okScroll, Math.max(0, okList.size() - s.mov()));
-        ProxyListRenderer.renderOkList(ctx, s.tr(), okList, active,
-                s.ox(), ly, lw, olh, s.okScroll, s.mov(), mx, my);
-    }
+		s.listScroll = Math.clamp(entries.size() - s.mv(), 0, s.listScroll);
 
-    /** Renders the form section headers and field labels below the lists. */
-    static void renderFormLabels(ProxyScreen s, DrawContext ctx) {
-        int lx = s.lx(), lw = s.lw(), py = s.cy();
-        int halfLw = (lw - ROW_GAP) / 2;
+		ctx.drawTextWithShadow(
+				s.textRenderer(),
+				Text.literal(
+						translatableString("screen.duollectis.proxy_manager.list.raw")
+								+ " (" + s.cachedList.size() + ")"
+								+ "  [" + s.filterDropdown.getSelected().name() + "]"
+				),
+				lx, ly - 10, 0xFFAAAAAA
+		);
 
-        drawSectionHeader(ctx, s.tr(), lx, py, lw,
-                s.editingProxy != null ? ts(SEC_EDIT) : ts(SEC_ADD));
-        py += SEC_H;
-        ctx.drawTextWithShadow(s.tr(), t(LBL_NAME),     lx,                    py, 0xFFAAAAAA);
-        ctx.drawTextWithShadow(s.tr(), t(LBL_ADDRESS),  lx + halfLw + ROW_GAP, py, 0xFFAAAAAA);
-        py += LABEL_H + FIELD_H + ROW_GAP;
-        ctx.drawTextWithShadow(s.tr(), t(LBL_PORT),     lx,                    py, 0xFFAAAAAA);
-        ctx.drawTextWithShadow(s.tr(), t(LBL_USERNAME), lx + halfLw + ROW_GAP, py, 0xFFAAAAAA);
-        py += LABEL_H + FIELD_H + ROW_GAP;
-        ctx.drawTextWithShadow(s.tr(), t(LBL_PASSWORD), lx, py, 0xFFAAAAAA);
-        py += LABEL_H + FIELD_H + ROW_GAP + FIELD_H + ROW_GAP + 8;
+		ProxyListRenderer.renderList(
+				ctx,
+				s.textRenderer(),
+				entries,
+				s.editingProxy,
+				ProxyManager.getInstance().getActiveProxy(),
+				lx, ly, lw, lh,
+				s.listScroll, s.mv(),
+				mx, my
+		);
+	}
 
-        drawSectionHeader(ctx, s.tr(), lx, py, lw, ts(SEC_CHECKER));
-        py += SEC_H;
+	static void renderSidebarLabels(ProxyScreen s, DrawContext ctx) {
+		int sx = s.sx(), sw = s.sw(), py = sidebarY();
+		int portW = (sw - ROW_GAP) / 2;
+		int addrW = sw - portW - ROW_GAP;
 
-        int labelW = s.tr().getWidth(t(LBL_MAX_PINGS)) + 4;
-        int numW   = 44;
-        ctx.drawTextWithShadow(s.tr(), t(LBL_MAX_PINGS), lx, py + 6, 0xFFAAAAAA);
-        ctx.drawTextWithShadow(s.tr(), t(LBL_DELAY_MS),
-                lx + labelW + numW + ROW_GAP, py + 6, 0xFFAAAAAA);
-        py += FIELD_H + ROW_GAP;
-        ctx.drawTextWithShadow(s.tr(), t(LBL_THREADS), lx, py + 6, 0xFFAAAAAA);
-        py += FIELD_H + ROW_GAP;
-        ctx.drawTextWithShadow(s.tr(), t(LBL_TARGET), lx, py, 0xFFAAAAAA);
-    }
+		drawSectionHeader(
+				ctx, s.textRenderer(), sx, py, sw,
+				s.editingProxy == null
+				? translatableString("screen.duollectis.proxy_manager.section.add_proxy")
+				: translatableString("screen.duollectis.proxy_manager.section.edit_proxy")
+		);
+		py += SEC_H;
 
-    /** Renders the edit-mode indicator, progress bar, and status message. */
-    static void renderOverlay(ProxyScreen s, DrawContext ctx, List<Proxy> all) {
-        // edit mode indicator
-        if (s.editingProxy != null) {
-            ctx.drawTextWithShadow(s.tr(),
-                    Text.literal("✎ " + s.editingProxy.getName()),
-                    s.lx(), s.cy() - 1, 0xFF88CCFF);
-        }
+		ctx.drawTextWithShadow(
+				s.textRenderer(),
+				translatable("screen.duollectis.proxy_manager.label.name"),
+				sx,
+				py,
+				0xFFAAAAAA
+		);
+		py += LABEL_H + FIELD_H + ROW_GAP;
 
-        // active proxy line
-        ProxyListRenderer.renderActiveStatus(ctx, s.tr(), PAD, s.height - PAD - 12);
+		ctx.drawTextWithShadow(
+				s.textRenderer(),
+				translatable("screen.duollectis.proxy_manager.label.address"),
+				sx,
+				py,
+				0xFFAAAAAA
+		);
+		ctx.drawTextWithShadow(
+				s.textRenderer(),
+				translatable("screen.duollectis.proxy_manager.label.port"),
+				sx + addrW + ROW_GAP,
+				py,
+				0xFFAAAAAA
+		);
+		py += LABEL_H + FIELD_H + ROW_GAP;
 
-        // progress bar
-        if (ProxyScreen.barSessionTotal >= 0) {
-            ProxyListRenderer.renderProgressBar(ctx, s.tr(), all,
-                    ProxyScreen.barSessionTotal,
-                    ProxyScreen.barSessionBaseline,
-                    ProxyScreen.barSessionDone,
-                    s.lx(), s.height - PAD - 32, s.lw());
-        }
+		ctx.drawTextWithShadow(
+				s.textRenderer(),
+				translatable("screen.duollectis.proxy_manager.label.username"),
+				sx,
+				py,
+				0xFFAAAAAA
+		);
+		ctx.drawTextWithShadow(
+				s.textRenderer(),
+				translatable("screen.duollectis.proxy_manager.label.password"),
+				sx + addrW + ROW_GAP,
+				py,
+				0xFFAAAAAA
+		);
 
-        // status message
-        if (!s.statusMsg.isEmpty()) {
-            ctx.drawTextWithShadow(s.tr(), Text.literal(s.statusMsg),
-                    PAD, s.height - PAD - 56, s.statusColor);
-        }
-    }
+		py = sidebarY() + FORM_H;
+		drawSectionHeader(
+				ctx,
+				s.textRenderer(),
+				sx,
+				py,
+				sw,
+				translatableString("screen.duollectis.proxy_manager.section.checker")
+		);
+		py += SEC_H;
 
-    /** Updates per-frame button active states and dynamic labels. */
-    static void updateButtonStates(ProxyScreen s, List<Proxy> all, List<Proxy> okList) {
-        boolean running          = ProxyChecker.getInstance().isRunning();
-        boolean hasFailed        = all.stream().anyMatch(Proxy::isFailed);
-        boolean hasRaw           = all.stream().anyMatch(p -> p.getStatus() == Proxy.Status.UNKNOWN || p.isFailed());
-        boolean hasNonUnknownRaw = all.stream().anyMatch(p -> p.isFailed() || p.getStatus() == Proxy.Status.CHECKING);
-        boolean hasOk            = !okList.isEmpty();
-        boolean hasUnknown       = all.stream().anyMatch(p -> p.getStatus() == Proxy.Status.UNKNOWN);
+		int maxPingsLabelW = s
+				.textRenderer()
+				.getWidth(translatable("screen.duollectis.proxy_manager.label.max_pings")) + 4;
 
-        if (s.btnStartStop  != null) {
-            s.btnStartStop.setMessage(t(running ? BTN_STOP : BTN_START));
-            s.btnStartStop.active = running || hasUnknown;
-        }
-        if (s.btnDelFailed  != null) s.btnDelFailed.active  = hasFailed && !running;
-        if (s.btnClear      != null) s.btnClear.active      = hasRaw && !running;
-        if (s.btnResetRaw   != null) s.btnResetRaw.active   = hasNonUnknownRaw && !running;
-        if (s.btnExportOk   != null) s.btnExportOk.active   = hasOk;
-        if (s.btnResetChk   != null) s.btnResetChk.active   = hasOk && !running;
-        if (s.btnRecheck    != null) s.btnRecheck.active    = hasOk && !running;
-        if (s.btnSort       != null) {
-            s.btnSort.setMessage(ProxyOkSorter.sortLabel(s.okSortMode));
-            s.btnSort.active = hasOk;
-        }
-        if (s.btnPingToggle != null) {
-            boolean s3 = ProxyChecker.getInstance().getSettings().isPingStage3();
-            s.btnPingToggle.setMessage(t(s3 ? BTN_PING_ON : BTN_PING_OFF));
-            s.btnPingToggle.active = !running;
-        }
-    }
+		ctx.drawTextWithShadow(
+				s.textRenderer(),
+				translatable("screen.duollectis.proxy_manager.label.max_pings"),
+				sx,
+				py + 6,
+				0xFFAAAAAA
+		);
+
+		ctx.drawTextWithShadow(
+				s.textRenderer(),
+				translatable("screen.duollectis.proxy_manager.label.delay_ms"),
+				sx + maxPingsLabelW + NUM_W + ROW_GAP,
+				py + 6,
+				0xFFAAAAAA
+		);
+
+		py += FIELD_H + ROW_GAP;
+
+		ctx.drawTextWithShadow(
+				s.textRenderer(),
+				translatable("screen.duollectis.proxy_manager.label.threads"),
+				sx,
+				py + 6,
+				0xFFAAAAAA
+		);
+
+		py += FIELD_H + ROW_GAP;
+
+		ctx.drawTextWithShadow(
+				s.textRenderer(),
+				translatable("screen.duollectis.proxy_manager.label.target"),
+				sx,
+				py,
+				0xFFAAAAAA
+		);
+
+		ctx.fill(sx - PAD / 2, sidebarY() - 2, sx - PAD / 2 + 1, s.height - PAD, 0xFF334455);
+	}
+
+	static void renderOverlay(ProxyScreen s, DrawContext ctx, List<Proxy> all) {
+		int lx = s.lx(), lw = s.lw();
+
+		if (s.editingProxy != null) {
+			ctx.drawTextWithShadow(
+					s.textRenderer(),
+					Text.literal("✎ " + s.editingProxy.getName()),
+					lx, s.ly() - 1, 0xFF88CCFF
+			);
+		}
+
+		int bottomY = s.ly() + s.lh() + PAD;
+
+		if (!s.statusMsg.isEmpty()) {
+			ctx.drawTextWithShadow(
+					s.textRenderer(),
+					Text.literal(s.statusMsg),
+					lx, bottomY, s.statusColor
+			);
+		}
+
+		bottomY += LABEL_H + PAD;
+
+		if (ProxyScreen.barTotal >= 0) {
+			ProxyListRenderer.renderProgressBar(
+					ctx, s.textRenderer(), all,
+					ProxyScreen.barTotal, ProxyScreen.barBaseline, ProxyScreen.barDone,
+					lx, bottomY, lw
+			);
+		}
+
+		bottomY += 6 + PAD + LABEL_H + PAD;
+
+		ProxyListRenderer.renderActiveStatus(ctx, s.textRenderer(), lx, bottomY);
+	}
+
+	static void updateButtonStates(ProxyScreen s, List<Proxy> all) {
+		boolean running = ProxyChecker.getInstance().isRunning();
+		boolean hasFailed = all.stream().anyMatch(Proxy::isFailed);
+		boolean hasRaw = all.stream().anyMatch(p -> p.getStatus() == Proxy.Status.UNKNOWN || p.isFailed());
+		boolean hasNonUnknownRaw = all.stream().anyMatch(p -> p.isFailed() || p.getStatus() == Proxy.Status.CHECKING);
+		boolean hasOk = all.stream().anyMatch(p -> p.getStatus() == Proxy.Status.OK);
+		boolean hasUnknown = all.stream().anyMatch(p -> p.getStatus() == Proxy.Status.UNKNOWN);
+
+		if (s.btnStartStop != null) {
+			s.btnStartStop.setMessage(translatable(running
+			                                       ? "screen.duollectis.proxy_manager.btn.stop"
+			                                       : "screen.duollectis.proxy_manager.btn.start"));
+			s.btnStartStop.active = running || hasUnknown;
+		}
+
+		if (s.btnDelFailed != null) {
+			s.btnDelFailed.active = hasFailed && !running;
+		}
+
+		if (s.btnClear != null) {
+			s.btnClear.active = hasRaw && !running;
+		}
+
+		if (s.btnResetRaw != null) {
+			s.btnResetRaw.active = hasNonUnknownRaw && !running;
+		}
+
+		if (s.btnExportOk != null) {
+			s.btnExportOk.active = hasOk;
+		}
+
+		if (s.btnResetChk != null) {
+			s.btnResetChk.active = hasOk && !running;
+		}
+
+		if (s.btnPingToggle != null) {
+			boolean pingEnabled = ProxyChecker.getInstance().getSettings().isPingStage3();
+			s.btnPingToggle.setMessage(translatable(pingEnabled
+			                                        ? "screen.duollectis.proxy_manager.btn.ping_on"
+			                                        : "screen.duollectis.proxy_manager.btn.ping_off"));
+			s.btnPingToggle.active = !running;
+		}
+	}
 }

@@ -1,25 +1,33 @@
-/*
- * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
- * Copyright (c) Meteor Development.
- */
-
 package org.duollectis.client.settings;
 
-import com.google.gson.JsonObject;
-import net.minecraft.nbt.NbtCompound;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonPrimitive;
+import lombok.Getter;
+import org.duollectis.client.api.settings.Setting;
 import org.duollectis.client.utils.IVisible;
 
 import java.util.function.Consumer;
 
 public class IntSetting extends Setting<Integer> {
 
-	public final int min, max;
-	public final int sliderMin, sliderMax;
-	public final boolean noSlider;
+	@Getter
+	private final int min;
+
+	@Getter
+	private final int max;
+
+	@Getter
+	private final int sliderMin;
+
+	@Getter
+	private final int sliderMax;
+
+	@Getter
+	private final boolean noSlider;
 
 	private IntSetting(
-			String name,
-			String description,
+			String id,
+			String group,
 			int defaultValue,
 			Consumer<Integer> onChanged,
 			Consumer<Setting<Integer>> onModuleActivated,
@@ -30,7 +38,7 @@ public class IntSetting extends Setting<Integer> {
 			int sliderMax,
 			boolean noSlider
 	) {
-		super(name, description, defaultValue, onChanged, onModuleActivated, visible);
+		super(id, group, defaultValue, onChanged, onModuleActivated, visible);
 
 		this.min = min;
 		this.max = max;
@@ -43,8 +51,7 @@ public class IntSetting extends Setting<Integer> {
 	protected Integer parseImpl(String str) {
 		try {
 			return Integer.parseInt(str.trim());
-		}
-		catch (NumberFormatException ignored) {
+		} catch (NumberFormatException ignored) {
 			return null;
 		}
 	}
@@ -55,26 +62,34 @@ public class IntSetting extends Setting<Integer> {
 	}
 
 	@Override
-	public JsonObject save(JsonObject tag) {
-		tag.addProperty("value", get());
-		return tag;
+	public JsonElement writeValue() {
+		return new JsonPrimitive(get());
 	}
 
 	@Override
-	public Integer load(JsonObject tag) {
-		set(tag.has("value") ? tag.get("value").getAsInt() : 0);
+	public void readValue(JsonElement element) {
+		set(element.getAsInt());
+	}
 
-		return get();
+	public static Builder create(String id) {
+		return new Builder(id);
 	}
 
 	public static class Builder extends SettingBuilder<Builder, Integer, IntSetting> {
 
-		private int min = Integer.MIN_VALUE, max = Integer.MAX_VALUE;
-		private int sliderMin = 0, sliderMax = 10;
+		private int min = Integer.MIN_VALUE;
+		private int max = Integer.MAX_VALUE;
+		private int sliderMin = 0;
+		private int sliderMax = 10;
 		private boolean noSlider = false;
 
-		public Builder() {
-			super(0);
+		private Builder(String id) {
+			super(id, 0);
+		}
+
+		public Builder defaultValue(int defaultValue) {
+			this.defaultValue = defaultValue;
+			return this;
 		}
 
 		public Builder min(int min) {
@@ -94,10 +109,16 @@ public class IntSetting extends Setting<Integer> {
 			return this;
 		}
 
-		public IntSetting build() {
+		public Builder noSlider() {
+			this.noSlider = true;
+			return this;
+		}
+
+		@Override
+		public IntSetting done() {
 			return new IntSetting(
-					name,
-					description,
+					id,
+					group,
 					defaultValue,
 					onChanged,
 					onModuleActivated,
@@ -109,5 +130,7 @@ public class IntSetting extends Setting<Integer> {
 					noSlider
 			);
 		}
+
 	}
+
 }

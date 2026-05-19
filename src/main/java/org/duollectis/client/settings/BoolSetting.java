@@ -1,12 +1,8 @@
-/*
- * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
- * Copyright (c) Meteor Development.
- */
-
 package org.duollectis.client.settings;
 
-import com.google.gson.JsonObject;
-import net.minecraft.nbt.NbtCompound;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonPrimitive;
+import org.duollectis.client.api.settings.Setting;
 import org.duollectis.client.utils.IVisible;
 
 import java.util.List;
@@ -17,24 +13,30 @@ public class BoolSetting extends Setting<Boolean> {
 	private static final List<String> SUGGESTIONS = List.of("true", "false", "toggle");
 
 	private BoolSetting(
-			String name,
-			String description,
+			String id,
+			String group,
 			Boolean defaultValue,
 			Consumer<Boolean> onChanged,
 			Consumer<Setting<Boolean>> onModuleActivated,
 			IVisible visible
 	) {
-		super(name, description, defaultValue, onChanged, onModuleActivated, visible);
+		super(id, group, defaultValue, onChanged, onModuleActivated, visible);
 	}
 
 	@Override
 	protected Boolean parseImpl(String str) {
-		if (str.equalsIgnoreCase("true") || str.equalsIgnoreCase("1"))
+		if (str.equalsIgnoreCase("true") || str.equalsIgnoreCase("1")) {
 			return true;
-		else if (str.equalsIgnoreCase("false") || str.equalsIgnoreCase("0"))
+		}
+
+		if (str.equalsIgnoreCase("false") || str.equalsIgnoreCase("0")) {
 			return false;
-		else if (str.equalsIgnoreCase("toggle"))
-			return !get();
+		}
+
+		if (str.equalsIgnoreCase("toggle")) {
+			return get() == false;
+		}
+
 		return null;
 	}
 
@@ -49,25 +51,37 @@ public class BoolSetting extends Setting<Boolean> {
 	}
 
 	@Override
-	public JsonObject save(JsonObject tag) {
-		tag.addProperty("value", get());
-		return tag;
+	public JsonElement writeValue() {
+		return new JsonPrimitive(get());
 	}
 
 	@Override
-	protected Boolean load(JsonObject tag) {
-		set(tag.has("value") && tag.get("value").getAsBoolean());
-		return get();
+	public void readValue(JsonElement element) {
+		set(element.getAsBoolean());
+	}
+
+	public static Builder create(String id) {
+		return new Builder(id);
 	}
 
 	public static class Builder extends SettingBuilder<Builder, Boolean, BoolSetting> {
 
-		public Builder() {
-			super(false);
+		private Builder(String id) {
+			super(id, false);
 		}
 
-		public BoolSetting build() {
-			return new BoolSetting(name, description, defaultValue, onChanged, onModuleActivated, visible);
+		@Override
+		public BoolSetting done() {
+			return new BoolSetting(
+					id,
+					group,
+					defaultValue,
+					onChanged,
+					onModuleActivated,
+					visible
+			);
 		}
+
 	}
+
 }

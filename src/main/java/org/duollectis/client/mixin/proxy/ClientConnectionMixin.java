@@ -29,16 +29,20 @@ public abstract class ClientConnectionMixin {
 			PacketSizeLogger packetSizeLogger,
 			CallbackInfo ci
 	) {
-		if (side != NetworkSide.CLIENTBOUND || local)
+		if (side != NetworkSide.CLIENTBOUND || local) {
 			return;
+		}
 
 		ProxyManager pm = ProxyManager.getInstance();
-		if (pm == null) return;
+		if (pm == null) {
+			return;
+		}
 
 		Proxy proxy = pm.getActiveProxy();
-		if (proxy == null) return;
 
-		System.out.println("Add proxy: " + proxy.getAddress() + ":" + proxy.getPort());
+		if (proxy == null) {
+			return;
+		}
 
 		switch (proxy.getType()) {
 			case SOCKS4 -> pipeline.addFirst(new Socks4ProxyHandler(
