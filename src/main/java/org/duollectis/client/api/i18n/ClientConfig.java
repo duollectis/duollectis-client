@@ -16,7 +16,7 @@ import java.util.Arrays;
 @Slf4j
 public final class ClientConfig {
 
-    private static final ClientLocale DEFAULT_LOCALE = ClientLocale.EN_US;
+    private static final ClientLocale DEFAULT_LOCALE = ClientLocale.ENGLISH;
     private static final String CONFIG_FILE = "duollectis/client-config.json";
     private static final String KEY_LOCALE = "locale";
 

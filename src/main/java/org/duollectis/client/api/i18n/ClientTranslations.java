@@ -15,7 +15,7 @@ import java.util.Map;
 @Slf4j
 public final class ClientTranslations {
 
-    private static final ClientLocale FALLBACK_LOCALE = ClientLocale.EN_US;
+    private static final ClientLocale FALLBACK_LOCALE = ClientLocale.ENGLISH;
     private static final String BUILTIN_LANG_PATH = "assets/duollectis/client/lang/";
 
     @Getter
