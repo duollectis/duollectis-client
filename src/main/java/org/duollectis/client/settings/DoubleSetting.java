@@ -8,6 +8,10 @@ import org.duollectis.client.utils.IVisible;
 
 import java.util.function.Consumer;
 
+/**
+ * Настройка вещественного числа с поддержкой слайдера, диапазона допустимых значений
+ * и настраиваемого количества знаков после запятой.
+ */
 public class DoubleSetting extends Setting<Double> {
 
 	@Getter
@@ -31,6 +35,9 @@ public class DoubleSetting extends Setting<Double> {
 	@Getter
 	private final boolean noSlider;
 
+	@Getter
+	private final String suffix;
+
 	private DoubleSetting(
 			String id,
 			String group,
@@ -44,7 +51,8 @@ public class DoubleSetting extends Setting<Double> {
 			double sliderMax,
 			boolean onSliderRelease,
 			int decimalPlaces,
-			boolean noSlider
+			boolean noSlider,
+			String suffix
 	) {
 		super(id, group, defaultValue, onChanged, onModuleActivated, visible);
 
@@ -55,13 +63,19 @@ public class DoubleSetting extends Setting<Double> {
 		this.decimalPlaces = decimalPlaces;
 		this.onSliderRelease = onSliderRelease;
 		this.noSlider = noSlider;
+		this.suffix = suffix;
+	}
+
+	public boolean isSlider() {
+		return !noSlider;
 	}
 
 	@Override
 	protected Double parseImpl(String str) {
 		try {
 			return Double.parseDouble(str.trim());
-		} catch (NumberFormatException ignored) {
+		}
+		catch (NumberFormatException ignored) {
 			return null;
 		}
 	}
@@ -94,6 +108,7 @@ public class DoubleSetting extends Setting<Double> {
 		private boolean onSliderRelease = false;
 		private int decimalPlaces = 3;
 		private boolean noSlider = false;
+		private String suffix = "";
 
 		private Builder(String id) {
 			super(id, 0D);
@@ -136,6 +151,11 @@ public class DoubleSetting extends Setting<Double> {
 			return this;
 		}
 
+		public Builder suffix(String suffix) {
+			this.suffix = suffix;
+			return this;
+		}
+
 		@Override
 		public DoubleSetting done() {
 			return new DoubleSetting(
@@ -151,7 +171,8 @@ public class DoubleSetting extends Setting<Double> {
 					Math.min(sliderMax, max),
 					onSliderRelease,
 					decimalPlaces,
-					noSlider
+					noSlider,
+					suffix
 			);
 		}
 

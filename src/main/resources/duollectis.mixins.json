@@ -12,9 +12,19 @@
         "ClientPlayNetworkHandlerMixin",
         "events.game.joined.ConnectScreenMixin",
         "events.packet.ClientConnectionMixin",
+        "events.render.GameRendererMixin",
         "events.tick.MiecraftClientMixin",
         "modules.autoreconnect.DisconnectedScreenMixin",
-        "gui.TitleScreenMixin"
+        "modules.memoryoptimizer.ParticleManagerMixin",
+        "modules.memoryoptimizer.WeatherRenderingMixin",
+        "modules.memoryoptimizer.SpriteAtlasTextureMixin",
+        "modules.memoryoptimizer.SoundSystemMixin",
+        "modules.memoryoptimizer.ChunkBuilderMixin",
+        "modules.memoryoptimizer.GameOptionsMixin",
+        "modules.memoryoptimizer.SpriteLoaderMixin",
+        "gui.TitleScreenMixin",
+        "account.MinecraftClientSessionMixin",
+        "modules.fullbright.LightmapTextureManagerMixin"
     ],
     "mixins": [
         "proxy.ClientConnectionMixin"

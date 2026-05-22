@@ -5,7 +5,6 @@ import com.google.common.primitives.Shorts;
 import com.google.common.primitives.SignedBytes;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
-import net.minecraft.client.MinecraftClient;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.network.packet.c2s.play.ClickSlotC2SPacket;
@@ -18,54 +17,66 @@ import net.minecraft.util.collection.DefaultedList;
 
 import java.util.List;
 
-public class ScreenHandlerUtil {
+import static org.duollectis.client.utils.MC.mc;
 
-    public static void clickSlot(
-            ScreenHandler screenHandler,
-            int slotId,
-            int button,
-            SlotActionType actionType,
-            PlayerEntity player
-    ) {
-        if (MinecraftClient.getInstance().player == null) {
-            return;
-        }
+/** Утилиты для программного клика по слотам инвентаря с корректной сетевой синхронизацией. */
+public final class ScreenHandlerUtil {
 
-        DefaultedList<Slot> defaultedList = screenHandler.slots;
+	private ScreenHandlerUtil() {}
 
-        int i = defaultedList.size();
-        List<ItemStack> list = Lists.newArrayListWithCapacity(i);
+	/**
+	 * Выполняет клик по слоту инвентаря и отправляет {@link ClickSlotC2SPacket} с diff изменённых стеков.
+	 * Вычисляет хэши только изменившихся слотов для минимизации трафика.
+	 *
+	 * @param screenHandler открытый экран-обработчик
+	 * @param slotId        идентификатор слота
+	 * @param button        кнопка мыши (0 = ЛКМ, 1 = ПКМ)
+	 * @param actionType    тип действия (PICKUP, QUICK_MOVE и т.д.)
+	 * @param player        игрок, выполняющий действие
+	 */
+	public static void clickSlot(
+		ScreenHandler screenHandler,
+		int slotId,
+		int button,
+		SlotActionType actionType,
+		PlayerEntity player
+	) {
+		if (mc.player == null) {
+			return;
+		}
 
-        for (Slot slot : defaultedList) {
-            list.add(slot.getStack().copy());
-        }
+		DefaultedList<Slot> defaultedList = screenHandler.slots;
+		int i = defaultedList.size();
+		List<ItemStack> list = Lists.newArrayListWithCapacity(i);
 
-        screenHandler.onSlotClick(slotId, button, actionType, player);
-        Int2ObjectMap<ItemStackHash> int2ObjectMap = new Int2ObjectOpenHashMap<>();
+		for (Slot slot : defaultedList) {
+			list.add(slot.getStack().copy());
+		}
 
-        ComponentChangesHash.ComponentHasher hasher = MinecraftClient
-                .getInstance()
-                .player
-                .networkHandler
-                .getComponentHasher();
+		screenHandler.onSlotClick(slotId, button, actionType, player);
+		Int2ObjectMap<ItemStackHash> int2ObjectMap = new Int2ObjectOpenHashMap<>();
 
-        for (int j = 0; j < i; ++j) {
-            ItemStack itemStack = list.get(j);
-            ItemStack itemStack2 = defaultedList.get(j).getStack();
+		ComponentChangesHash.ComponentHasher hasher = mc.player
+			.networkHandler
+			.getComponentHasher();
 
-            if (!ItemStack.areEqual(itemStack, itemStack2)) {
-                int2ObjectMap.put(j, ItemStackHash.fromItemStack(itemStack2, hasher));
-            }
-        }
+		for (int j = 0; j < i; ++j) {
+			ItemStack itemStack = list.get(j);
+			ItemStack itemStack2 = defaultedList.get(j).getStack();
 
-        PacketUtil.sendPacket(new ClickSlotC2SPacket(
-                screenHandler.syncId,
-                screenHandler.getRevision(),
-                Shorts.checkedCast(slotId),
-                SignedBytes.checkedCast(button),
-                actionType,
-                int2ObjectMap,
-                ItemStackHash.fromItemStack(screenHandler.getCursorStack(), hasher)
-        ));
-    }
+			if (!ItemStack.areEqual(itemStack, itemStack2)) {
+				int2ObjectMap.put(j, ItemStackHash.fromItemStack(itemStack2, hasher));
+			}
+		}
+
+		PacketUtil.sendPacket(new ClickSlotC2SPacket(
+			screenHandler.syncId,
+			screenHandler.getRevision(),
+			Shorts.checkedCast(slotId),
+			SignedBytes.checkedCast(button),
+			actionType,
+			int2ObjectMap,
+			ItemStackHash.fromItemStack(screenHandler.getCursorStack(), hasher)
+		));
+	}
 }

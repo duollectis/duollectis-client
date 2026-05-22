@@ -20,312 +20,363 @@ import java.util.function.IntConsumer;
 
 import static org.duollectis.client.api.menu.proxy.ProxyScreenUtil.*;
 
+/**
+ * Утилита бизнес-логики экрана прокси: сохранение/добавление/удаление прокси,
+ * запуск/остановка чекера, импорт из буфера обмена и файла, экспорт рабочих прокси.
+ */
 final class ProxyScreenActions {
 
-    private ProxyScreenActions() {}
+ private ProxyScreenActions() {}
 
-    static void saveEdit(
-            Proxy editingProxy,
-            String address, String portStr,
-            String name, String username, String password,
-            Proxy.Type type,
-            StatusSink status,
-            Runnable onSuccess
-    ) {
-        if (editingProxy == null) {
-            return;
-        }
+ static void saveEdit(
+			Proxy editingProxy,
+			String address, String portStr,
+			String name, String username, String password,
+			Proxy.Type type,
+			StatusSink status,
+			Runnable onSuccess
+	) {
+		if (editingProxy == null) {
+			return;
+		}
 
-        if (address.isEmpty() || portStr.isEmpty()) {
-            status.set(translatableString("screen.duollectis.proxy_manager.msg.address_port_required"), 0xFFFF4444);
-            return;
-        }
+		if (address.isEmpty() || portStr.isEmpty()) {
+			status.set(translatableString("screen.duollectis.proxy_manager.msg.address_port_required"), 0xFFFF4444);
+			return;
+		}
 
-        int port;
-        try {
-            port = Integer.parseInt(portStr);
-        } catch (NumberFormatException e) {
-            status.set(translatableString("screen.duollectis.proxy_manager.msg.invalid_port"), 0xFFFF4444);
-            return;
-        }
+		int port;
 
-        editingProxy.setAddress(address);
-        editingProxy.setPort(port);
-        editingProxy.setName(name.isEmpty() ? address + ":" + port : name);
-        editingProxy.setType(type);
-        editingProxy.setUsername(username.isEmpty() ? null : username);
-        editingProxy.setPassword(password.isEmpty() ? null : password);
-        editingProxy.setStatus(Proxy.Status.UNKNOWN);
-        editingProxy.setLatency(-1);
-        editingProxy.setPingCount(0);
+		try {
+			port = Integer.parseInt(portStr);
+		}
+		catch (NumberFormatException e) {
+			status.set(translatableString("screen.duollectis.proxy_manager.msg.invalid_port"), 0xFFFF4444);
+			return;
+		}
 
-        ProxyManager.getInstance().save();
-        status.set(translatableString("screen.duollectis.proxy_manager.msg.proxy_saved"), 0xFF44FF88);
-        onSuccess.run();
-    }
+		editingProxy.setAddress(address);
+		editingProxy.setPort(port);
+		editingProxy.setName(name.isEmpty() ? address + ":" + port : name);
+		editingProxy.setType(type);
+		editingProxy.setUsername(username.isEmpty() ? null : username);
+		editingProxy.setPassword(password.isEmpty() ? null : password);
+		editingProxy.setStatus(Proxy.Status.UNKNOWN);
+		editingProxy.setLatency(-1);
+		editingProxy.setPingCount(0);
 
-    static void addProxy(
-            String address, String portStr,
-            String name, String username, String password,
-            Proxy.Type type
-    ) {
-        if (address.isEmpty() || portStr.isEmpty()) {
-            return;
-        }
+		ProxyManager.getInstance().save();
+		status.set(translatableString("screen.duollectis.proxy_manager.msg.proxy_saved"), 0xFF44FF88);
+		onSuccess.run();
+	}
 
-        int port;
-        try {
-            port = Integer.parseInt(portStr);
-        } catch (NumberFormatException e) {
-            return;
-        }
+	static void addProxy(
+			String address, String portStr,
+			String name, String username, String password,
+			Proxy.Type type
+	) {
+		if (address.isEmpty() || portStr.isEmpty()) {
+			return;
+		}
 
-        ProxyManager pm = ProxyManager.getInstance();
-        pm.addProxy(new Proxy(
-                name.isEmpty() ? address + ":" + port : name,
-                address, port, type,
-                username.isEmpty() ? null : username,
-                password.isEmpty() ? null : password
-        ));
-        pm.save();
-    }
+		int port;
 
-    static void removeProxy(Proxy proxy, Runnable onDone) {
-        if (proxy == null) {
-            return;
-        }
+		try {
+			port = Integer.parseInt(portStr);
+		}
+		catch (NumberFormatException e) {
+			return;
+		}
 
-        ProxyManager pm = ProxyManager.getInstance();
-        pm.removeProxy(proxy);
-        pm.save();
-        onDone.run();
-    }
+		ProxyManager pm = ProxyManager.getInstance();
+		pm.addProxy(new Proxy(
+				name.isEmpty() ? address + ":" + port : name,
+				address, port, type,
+				username.isEmpty() ? null : username,
+				password.isEmpty() ? null : password
+		));
+		pm.save();
+	}
 
-    static void toggleStartStop(
-            Runnable applySettings,
-            BiConsumer<Integer, Integer> onSessionStart,
-            IntConsumer onStop
-    ) {
-        applySettings.run();
+	static void removeProxy(Proxy proxy, Runnable onDone) {
+		if (proxy == null) {
+			return;
+		}
 
-        ProxyChecker checker = ProxyChecker.getInstance();
-        List<Proxy> proxies = ProxyManager.getInstance().getProxies();
+		ProxyManager pm = ProxyManager.getInstance();
+		pm.removeProxy(proxy);
+		pm.save();
+		onDone.run();
+	}
 
-        if (checker.isRunning()) {
-            int frozen = (int) proxies.stream()
-                    .filter(p -> p.getStatus() == Proxy.Status.OK
-                            || p.getStatus() == Proxy.Status.FAILED
-                            || p.getStatus() == Proxy.Status.DEAD_IP
-                            || p.getStatus() == Proxy.Status.DEAD_SERVER
-                            || p.getStatus() == Proxy.Status.PING_ERROR)
-                    .count();
-            checker.cancel();
-            onStop.accept(frozen);
-        } else {
-            long pending = proxies.stream()
-                    .filter(p -> p.getStatus() == Proxy.Status.UNKNOWN)
-                    .count();
+	static void toggleStartStop(
+			Runnable applySettings,
+			BiConsumer<Integer, Integer> onSessionStart,
+			IntConsumer onStop
+	) {
+		applySettings.run();
 
-            if (pending > 0) {
-                int baseline = (int) proxies.stream()
-                        .filter(p -> p.getStatus() == Proxy.Status.OK
-                                || p.getStatus() == Proxy.Status.FAILED)
-                        .count();
-                onSessionStart.accept((int) pending, baseline);
-                checker.start(SharedConstants.getProtocolVersion(), proxies);
-            }
-        }
-    }
+		ProxyChecker checker = ProxyChecker.getInstance();
+		List<Proxy> proxies = ProxyManager.getInstance().getProxies();
 
-    static void deleteFailed(StatusSink status) {
-        ProxyManager pm = ProxyManager.getInstance();
-        List<Proxy> toRemove = pm.getProxies().stream()
-                .filter(p -> p.getStatus() == Proxy.Status.FAILED)
-                .toList();
+		if (checker.isRunning()) {
+			int frozen = (int) proxies
+					.stream()
+					.filter(p -> p.getStatus() == Proxy.Status.OK
+							|| p.getStatus() == Proxy.Status.FAILED
+							|| p.getStatus() == Proxy.Status.DEAD_IP
+							|| p.getStatus() == Proxy.Status.DEAD_SERVER
+							|| p.getStatus() == Proxy.Status.PING_ERROR)
+					.count();
 
-        for (Proxy p : toRemove) {
-            pm.removeProxy(p);
-        }
+			checker.cancel();
+			onStop.accept(frozen);
+		}
+		else {
+			long pending = proxies
+					.stream()
+					.filter(p -> p.getStatus() == Proxy.Status.UNKNOWN)
+					.count();
 
-        pm.save();
-        status.set(tsa("screen.duollectis.proxy_manager.msg.deleted_failed", toRemove.size()), 0xFFFFAA44);
-    }
+			if (pending > 0) {
+				int baseline = (int) proxies
+						.stream()
+						.filter(p -> p.getStatus() == Proxy.Status.OK
+								|| p.getStatus() == Proxy.Status.FAILED)
+						.count();
 
-    static void clearRaw(Proxy editingProxy, StatusSink status, Runnable onEditingRemoved) {
-        ProxyManager pm = ProxyManager.getInstance();
-        List<Proxy> toRemove = pm.getProxies().stream()
-                .filter(p -> p.getStatus() == Proxy.Status.UNKNOWN
-                        || p.getStatus() == Proxy.Status.FAILED)
-                .toList();
+				onSessionStart.accept((int) pending, baseline);
+				checker.start(SharedConstants.getProtocolVersion(), proxies);
+			}
+		}
+	}
 
-        for (Proxy p : toRemove) {
-            pm.removeProxy(p);
-        }
+	static void deleteFailed(StatusSink status) {
+		ProxyManager pm = ProxyManager.getInstance();
+		List<Proxy> toRemove = pm
+				.getProxies().stream()
+				.filter(p -> p.getStatus() == Proxy.Status.FAILED)
+				.toList();
 
-        pm.save();
+		for (Proxy p : toRemove) {
+			pm.removeProxy(p);
+		}
 
-        if (editingProxy != null && toRemove.contains(editingProxy)) {
-            onEditingRemoved.run();
-        }
+		pm.save();
+		status.set(tsa("screen.duollectis.proxy_manager.msg.deleted_failed", toRemove.size()), 0xFFFFAA44);
+	}
 
-        status.set(tsa("screen.duollectis.proxy_manager.msg.cleared_raw", toRemove.size()), 0xFFFFAA44);
-    }
+	static void clearRaw(Proxy editingProxy, StatusSink status, Runnable onEditingRemoved) {
+		ProxyManager pm = ProxyManager.getInstance();
+		List<Proxy> toRemove = pm
+				.getProxies().stream()
+				.filter(p -> p.getStatus() == Proxy.Status.UNKNOWN
+						|| p.getStatus() == Proxy.Status.FAILED)
+				.toList();
 
-    static void resetRaw(StatusSink status) {
-        ProxyManager pm = ProxyManager.getInstance();
-        List<Proxy> toReset = pm.getProxies().stream()
-                .filter(p -> p.getStatus() != Proxy.Status.OK)
-                .toList();
+		for (Proxy p : toRemove) {
+			pm.removeProxy(p);
+		}
 
-        for (Proxy p : toReset) {
-            p.setStatus(Proxy.Status.UNKNOWN);
-            p.setLatency(-1);
-            p.setPingCount(0);
-        }
+		pm.save();
 
-        pm.save();
-        status.set(tsa("screen.duollectis.proxy_manager.msg.reset_raw", toReset.size()), 0xFFFFAA44);
-    }
+		if (editingProxy != null && toRemove.contains(editingProxy)) {
+			onEditingRemoved.run();
+		}
 
-    static void resetChecked(StatusSink status) {
-        ProxyManager pm = ProxyManager.getInstance();
-        List<Proxy> toReset = pm.getProxies().stream()
-                .filter(p -> p.getStatus() == Proxy.Status.OK)
-                .toList();
+		status.set(tsa("screen.duollectis.proxy_manager.msg.cleared_raw", toRemove.size()), 0xFFFFAA44);
+	}
 
-        Proxy active = pm.getActiveProxy();
+	static void resetRaw(StatusSink status) {
+		ProxyManager pm = ProxyManager.getInstance();
+		List<Proxy> toReset = pm
+				.getProxies().stream()
+				.filter(p -> p.getStatus() != Proxy.Status.OK)
+				.toList();
 
-        if (active != null && toReset.contains(active)) {
-            pm.setActiveProxy(null);
-        }
+		for (Proxy p : toReset) {
+			p.setStatus(Proxy.Status.UNKNOWN);
+			p.setLatency(-1);
+			p.setPingCount(0);
+		}
 
-        for (Proxy p : toReset) {
-            p.setStatus(Proxy.Status.UNKNOWN);
-            p.setLatency(-1);
-            p.setPingCount(0);
-        }
+		pm.save();
+		status.set(tsa("screen.duollectis.proxy_manager.msg.reset_raw", toReset.size()), 0xFFFFAA44);
+	}
 
-        pm.save();
-        status.set(tsa("screen.duollectis.proxy_manager.msg.reset_checked", toReset.size()), 0xFFFFAA44);
-    }
+	static void resetChecked(StatusSink status) {
+		ProxyManager pm = ProxyManager.getInstance();
+		List<Proxy> toReset = pm
+				.getProxies().stream()
+				.filter(p -> p.getStatus() == Proxy.Status.OK)
+				.toList();
 
-    static void importClipboard(MinecraftClient client, StatusSink status) {
-        String text = client != null ? client.keyboard.getClipboard() : null;
+		Proxy active = pm.getActiveProxy();
 
-        if (text == null || text.isBlank()) {
-            status.set(translatableString("screen.duollectis.proxy_manager.msg.clipboard_empty"), 0xFFFFAA44);
-            return;
-        }
+		if (active != null && toReset.contains(active)) {
+			pm.setActiveProxy(null);
+		}
 
-        doImport(text, status);
-    }
+		for (Proxy p : toReset) {
+			p.setStatus(Proxy.Status.UNKNOWN);
+			p.setLatency(-1);
+			p.setPingCount(0);
+		}
 
-    static void importFile(StatusSink status) {
-        daemonThread("proxy-file-chooser", () -> {
-            applySystemLookAndFeel();
+		pm.save();
+		status.set(tsa("screen.duollectis.proxy_manager.msg.reset_checked", toReset.size()), 0xFFFFAA44);
+	}
 
-            JFileChooser chooser = new JFileChooser();
-            chooser.setDialogTitle(translatableString("screen.duollectis.proxy_manager.dialog.import_title"));
-            chooser.setFileFilter(new FileNameExtensionFilter(
-                    translatableString("screen.duollectis.proxy_manager.dialog.import_filter"), "txt", "csv"));
-            chooser.setAcceptAllFileFilterUsed(true);
+	static void importClipboard(MinecraftClient client, StatusSink status) {
+		String text = client != null ? client.keyboard.getClipboard() : null;
 
-            if (chooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
-                try {
-                    doImport(Files.readString(chooser.getSelectedFile().toPath()), status);
-                } catch (IOException e) {
-                    status.set(tsa("screen.duollectis.proxy_manager.msg.error_reading_file", e.getMessage()), 0xFFFF4444);
-                }
-            }
-        });
-    }
+		if (text == null || text.isBlank()) {
+			status.set(translatableString("screen.duollectis.proxy_manager.msg.clipboard_empty"), 0xFFFFAA44);
+			return;
+		}
 
-    static void exportOk(StatusSink status) {
-        daemonThread("proxy-export", () -> {
-            applySystemLookAndFeel();
+		doImport(text, status);
+	}
 
-            JFileChooser chooser = new JFileChooser();
-            chooser.setDialogTitle(translatableString("screen.duollectis.proxy_manager.dialog.export_title"));
-            chooser.setSelectedFile(new File("proxies_ok.txt"));
-            chooser.setFileFilter(new FileNameExtensionFilter(
-                    translatableString("screen.duollectis.proxy_manager.dialog.export_filter"), "txt"));
-            chooser.setAcceptAllFileFilterUsed(true);
+	static void importFile(StatusSink status) {
+		daemonThread("proxy-file-chooser", () -> {
+			applySystemLookAndFeel();
 
-            if (chooser.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
-                File file = chooser.getSelectedFile();
+			JFileChooser chooser = new JFileChooser();
+			chooser.setDialogTitle(translatableString("screen.duollectis.proxy_manager.dialog.import_title"));
+			chooser.setFileFilter(new FileNameExtensionFilter(
+					translatableString("screen.duollectis.proxy_manager.dialog.import_filter"),
+					"txt",
+					"csv"
+			));
 
-                if (!file.getName().contains(".")) {
-                    file = new File(file.getAbsolutePath() + ".txt");
-                }
+			chooser.setAcceptAllFileFilterUsed(true);
 
-                List<Proxy> okList = ProxyManager.getInstance().getProxies().stream()
-                        .filter(p -> p.getStatus() == Proxy.Status.OK)
-                        .toList();
+			if (chooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
+				try {
+					doImport(Files.readString(chooser.getSelectedFile().toPath()), status);
+				}
+				catch (IOException e) {
+					status.set(
+							tsa("screen.duollectis.proxy_manager.msg.error_reading_file", e.getMessage()),
+							0xFFFF4444
+					);
+				}
+			}
+		});
+	}
 
-                try (FileWriter fw = new FileWriter(file)) {
-                    for (Proxy p : okList) {
-                        fw.write(p.getAddress() + ":" + p.getPort() + "\n");
-                    }
+	static void exportOk(StatusSink status) {
+		daemonThread(
+				"proxy-export", () -> {
+					applySystemLookAndFeel();
 
-                    status.set(tsa("screen.duollectis.proxy_manager.msg.exported", okList.size(), file.getName()), 0xFF88AAFF);
-                } catch (IOException e) {
-                    status.set(tsa("screen.duollectis.proxy_manager.msg.export_error", e.getMessage()), 0xFFFF4444);
-                }
-            }
-        });
-    }
+					JFileChooser chooser = new JFileChooser();
+					chooser.setDialogTitle(translatableString("screen.duollectis.proxy_manager.dialog.export_title"));
+					chooser.setSelectedFile(new File("proxies_ok.txt"));
+					chooser.setFileFilter(new FileNameExtensionFilter(
+							translatableString("screen.duollectis.proxy_manager.dialog.export_filter"),
+							"txt"
+					));
 
-    static void doImport(String text, StatusSink status) {
-        Set<Proxy> parsed = AddressParser.parseAll(text);
+					chooser.setAcceptAllFileFilterUsed(true);
 
-        if (parsed.isEmpty()) {
-            status.set(translatableString("screen.duollectis.proxy_manager.msg.no_valid_proxies"), 0xFFFFAA44);
-            return;
-        }
+					if (chooser.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
+						File file = chooser.getSelectedFile();
 
-        ProxyManager pm = ProxyManager.getInstance();
-        pm.addProxies(parsed);
-        pm.save();
-        status.set(tsa("screen.duollectis.proxy_manager.msg.imported", parsed.size()), 0xFF88AAFF);
-    }
+						if (!file.getName().contains(".")) {
+							file = new File(file.getAbsolutePath() + ".txt");
+						}
 
-    static void applyCheckerSettings(
-            String maxPingsText,
-            String maxDelayText,
-            String parallelismText,
-            String targetText,
-            String targetPortText
-    ) {
-        int maxPings = parseIntOr(maxPingsText, 3);
-        int maxDelay = parseIntOr(maxDelayText, 5000);
-        int parallelism = parseIntOr(parallelismText, 64);
+						List<Proxy> okList = ProxyManager
+								.getInstance().getProxies().stream()
+								.filter(p -> p.getStatus() == Proxy.Status.OK)
+								.toList();
 
-        ProxyChecker checker = ProxyChecker.getInstance()
-                .maxPings(maxPings)
-                .maxDelayMs(maxDelay)
-                .parallelism(parallelism);
+						try (FileWriter fw = new FileWriter(file)) {
+							for (Proxy p : okList) {
+								fw.write(p.getAddress() + ":" + p.getPort() + "\n");
+							}
 
-        if (targetText != null && !targetText.isBlank()
-                && targetPortText != null && !targetPortText.isBlank()) {
-            checker.target(targetText.trim(), parseIntOr(targetPortText, 25565));
-        }
+							status.set(
+									tsa(
+											"screen.duollectis.proxy_manager.msg.exported",
+											okList.size(),
+											file.getName()
+									), 0xFF88AAFF
+							);
+						}
+						catch (IOException e) {
+							status.set(
+									tsa("screen.duollectis.proxy_manager.msg.export_error", e.getMessage()),
+									0xFFFF4444
+							);
+						}
+					}
+				}
+		);
+	}
 
-        checker.saveSettings();
-    }
+	static void doImport(String text, StatusSink status) {
+		Set<Proxy> parsed = AddressParser.parseAll(text);
 
-    private static void applySystemLookAndFeel() {
-        try {
-            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-        } catch (Exception ignored) {}
-    }
+		if (parsed.isEmpty()) {
+			status.set(translatableString("screen.duollectis.proxy_manager.msg.no_valid_proxies"), 0xFFFFAA44);
+			return;
+		}
 
-    private static void daemonThread(String name, Runnable task) {
-        Thread thread = new Thread(task, name);
-        thread.setDaemon(true);
-        thread.start();
-    }
+		ProxyManager pm = ProxyManager.getInstance();
+		pm.addProxies(parsed);
+		pm.save();
+		status.set(tsa("screen.duollectis.proxy_manager.msg.imported", parsed.size()), 0xFF88AAFF);
+	}
 
-    interface StatusSink {
-        void set(String msg, int color);
-    }
+	static void applyCheckerSettings(
+			String maxPingsText,
+			String maxDelayText,
+			String parallelismText,
+			String targetText,
+			String targetPortText
+	) {
+		int maxPings = parseIntOr(maxPingsText, 3);
+		int maxDelay = parseIntOr(maxDelayText, 5000);
+		int parallelism = parseIntOr(parallelismText, 64);
+
+		ProxyChecker checker = ProxyChecker
+				.getInstance()
+				.maxPings(maxPings)
+				.maxDelayMs(maxDelay)
+				.parallelism(parallelism);
+
+		boolean hasTarget
+				= targetText != null
+				&& targetPortText != null
+				&& !targetText.isBlank()
+				&& !targetPortText.isBlank();
+
+		if (hasTarget) {
+			checker.target(targetText.trim(), parseIntOr(targetPortText, 25565));
+		}
+
+		checker.saveSettings();
+	}
+
+	private static void applySystemLookAndFeel() {
+		try {
+			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+		}
+		catch (Exception ignored) {
+		}
+	}
+
+	private static void daemonThread(String name, Runnable task) {
+		Thread thread = new Thread(task, name);
+		thread.setDaemon(true);
+		thread.start();
+	}
+
+	interface StatusSink {
+
+		void set(String msg, int color);
+	}
 }

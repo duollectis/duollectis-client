@@ -9,6 +9,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
+/**
+ * Настройка перечисления (enum). Автоматически извлекает все константы из типа
+ * значения по умолчанию и предоставляет их как подсказки для автодополнения.
+ */
 public class EnumSetting<T extends Enum<?>> extends Setting<T> {
 
 	private final T[] values;

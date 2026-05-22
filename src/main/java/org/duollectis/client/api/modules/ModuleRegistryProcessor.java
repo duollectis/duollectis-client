@@ -1,10 +1,6 @@
 package org.duollectis.client.api.modules;
 
-import javax.annotation.processing.AbstractProcessor;
-import javax.annotation.processing.Filer;
-import javax.annotation.processing.RoundEnvironment;
-import javax.annotation.processing.SupportedAnnotationTypes;
-import javax.annotation.processing.SupportedSourceVersion;
+import javax.annotation.processing.*;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.TypeElement;
@@ -15,6 +11,11 @@ import java.io.PrintWriter;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
+/**
+ * Annotation Processor времени компиляции: собирает все классы, помеченные {@link ModuleInfo},
+ * и записывает их полные имена в ресурс {@code META-INF/duollectis-modules}.
+ * {@link ModuleManager} читает этот файл при старте для авто-регистрации модулей.
+ */
 @SupportedAnnotationTypes("org.duollectis.client.api.modules.ModuleInfo")
 @SupportedSourceVersion(SourceVersion.RELEASE_21)
 public class ModuleRegistryProcessor extends AbstractProcessor {

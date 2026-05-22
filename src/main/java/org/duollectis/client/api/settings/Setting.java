@@ -13,12 +13,17 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
 
+/**
+ * Абстрактный базовый класс для всех настроек модуля.
+ * Хранит текущее значение, значение по умолчанию, ограничения видимости
+ * и колбэки на изменение. Реализует {@link ITranslatable} для локализации названия.
+ * Конкретные типы создаются через вложенный {@link SettingBuilder}.
+ */
 public abstract class Setting<T> implements ITranslatable {
 
 	private static final String DEFAULT_GROUP = "General";
 	private static final List<String> NO_SUGGESTIONS = new ArrayList<>(0);
 
-	@Getter
 	private final String id;
 
 	@Getter
@@ -57,22 +62,34 @@ public abstract class Setting<T> implements ITranslatable {
 	}
 
 	@Override
+	public String getId() {
+		return id;
+	}
+
+	@Override
 	public String getTranslationPath() {
 		return (parent == null
-		       ? "duollectis.client.global.settings."
-		       : parent.getTranslationPath() + ".settings.") + id;
+			? "duollectis.client.global.settings."
+			: parent.getTranslationPath() + ".settings.") + id;
 	}
 
 	public T get() {
 		return value;
 	}
 
-	public boolean set(T value) {
-		if (isValueValid(value) == false) {
+	/**
+	 * Устанавливает новое значение настройки с валидацией.
+	 * Если значение изменилось, вызывает зарегистрированный колбэк {@code onChanged}.
+	 *
+	 * @param newValue новое значение
+	 * @return {@code true}, если значение прошло валидацию и было применено
+	 */
+	public boolean set(T newValue) {
+		if (!isValueValid(newValue)) {
 			return false;
 		}
 
-		this.value = value;
+		value = newValue;
 		onChanged();
 
 		return true;
@@ -82,11 +99,19 @@ public abstract class Setting<T> implements ITranslatable {
 		value = defaultValue;
 	}
 
+	/** Сбрасывает значение настройки к значению по умолчанию. */
 	public void reset() {
 		resetImpl();
 		onChanged();
 	}
 
+	/**
+	 * Парсит строковое представление значения и применяет его.
+	 * Используется при вводе значения вручную в текстовое поле GUI.
+	 *
+	 * @param str строковое представление нового значения
+	 * @return {@code true}, если строка успешно распарсена и значение применено
+	 */
 	public boolean parse(String str) {
 		T newValue = parseImpl(str);
 
@@ -102,10 +127,15 @@ public abstract class Setting<T> implements ITranslatable {
 		return true;
 	}
 
+	/** @return {@code true}, если текущее значение отличается от значения по умолчанию */
 	public boolean wasChanged() {
-		return Objects.equals(value, defaultValue) == false;
+		return !Objects.equals(value, defaultValue);
 	}
 
+	/**
+	 * Вызывается при каждом изменении значения настройки.
+	 * Делегирует в зарегистрированный колбэк {@code onChanged}, если он задан.
+	 */
 	public void onChanged() {
 		if (onChanged == null) {
 			return;
@@ -114,6 +144,10 @@ public abstract class Setting<T> implements ITranslatable {
 		onChanged.accept(value);
 	}
 
+	/**
+	 * Вызывается при включении родительского модуля.
+	 * Используется для настроек, которые должны реагировать на активацию модуля.
+	 */
 	public void onActivated() {
 		if (onModuleActivated == null) {
 			return;
@@ -123,11 +157,7 @@ public abstract class Setting<T> implements ITranslatable {
 	}
 
 	public boolean isVisible() {
-		if (visible == null) {
-			return true;
-		}
-
-		return visible.isVisible();
+		return visible == null || visible.isVisible();
 	}
 
 	protected abstract T parseImpl(String str);
@@ -171,6 +201,14 @@ public abstract class Setting<T> implements ITranslatable {
 		return Objects.hash(id);
 	}
 
+	/**
+	 * Ищет объект в реестре Minecraft по строковому идентификатору.
+	 * Если строка не содержит {@code ":"}, автоматически добавляет пространство имён {@code minecraft:}.
+	 *
+	 * @param registry реестр для поиска
+	 * @param name     строковый идентификатор (с пространством имён или без)
+	 * @return найденный объект или {@code null}, если не найден
+	 */
 	@Nullable
 	public static <T> T parseId(Registry<T> registry, String name) {
 		String trimmed = name.trim();
@@ -186,6 +224,14 @@ public abstract class Setting<T> implements ITranslatable {
 		return null;
 	}
 
+	/**
+	 * Базовый строитель для создания настроек через fluent API.
+	 * Подклассы добавляют специфичные для типа параметры (диапазон, суффикс и т.д.).
+	 *
+	 * @param <B> тип конкретного строителя (для цепочки вызовов)
+	 * @param <V> тип значения настройки
+	 * @param <S> тип создаваемой настройки
+	 */
 	@SuppressWarnings("unchecked")
 	public abstract static class SettingBuilder<B, V, S extends Setting<V>> {
 

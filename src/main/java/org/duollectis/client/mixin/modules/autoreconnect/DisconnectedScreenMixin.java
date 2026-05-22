@@ -23,6 +23,11 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+/**
+ * Mixin для {@link DisconnectedScreen}: добавляет кнопку переподключения с обратным
+ * отсчётом и кнопку переключения модуля {@link AutoReconnect}. Автоматически
+ * переподключается по истечении таймера, если модуль активен.
+ */
 @Mixin(DisconnectedScreen.class)
 public abstract class DisconnectedScreenMixin extends Screen {
 
@@ -39,28 +44,30 @@ public abstract class DisconnectedScreenMixin extends Screen {
 	}
 
 	@Inject(
-			method = "init",
-			at = @At(
-					value = "INVOKE",
-					target = "Lnet/minecraft/client/gui/widget/DirectionalLayoutWidget;refreshPositions()V",
-					shift = At.Shift.BEFORE
-			)
+		method = "init",
+		at = @At(
+			value = "INVOKE",
+			target = "Lnet/minecraft/client/gui/widget/DirectionalLayoutWidget;refreshPositions()V",
+			shift = At.Shift.BEFORE
+		)
 	)
 	private void addButtons(CallbackInfo ci) {
 		AutoReconnect autoReconnect = ModuleManager.getInstance().get(AutoReconnect.class);
+		boolean hasConnection = autoReconnect.getLastServerConnection() != null;
+		boolean buttonDisabled = autoReconnect.getButton().get();
 
-		if (autoReconnect.getLastServerConnection() != null && autoReconnect.getButton().get() == false) {
+		if (hasConnection && !buttonDisabled) {
 			reconnectBtn = new ButtonWidget.Builder(Text.literal(getText()), button -> tryConnecting()).build();
 			grid.add(reconnectBtn);
 
 			grid.add(
-					new ButtonWidget.Builder(
-							Text.literal("Toggle Auto Reconnect"), button -> {
-								autoReconnect.toggle();
-								reconnectBtn.setMessage(Text.literal(getText()));
-								time = autoReconnect.getTime().get() * 20;
-							}
-					).build()
+				new ButtonWidget.Builder(
+					Text.literal("Toggle Auto Reconnect"), button -> {
+						autoReconnect.toggle();
+						reconnectBtn.setMessage(Text.literal(getText()));
+						time = autoReconnect.getTime().get() * 20;
+					}
+				).build()
 			);
 		}
 	}
@@ -68,40 +75,43 @@ public abstract class DisconnectedScreenMixin extends Screen {
 	@Override
 	public void tick() {
 		AutoReconnect autoReconnect = ModuleManager.getInstance().get(AutoReconnect.class);
+		boolean inactive = !autoReconnect.isActive();
+		boolean noConnection = autoReconnect.getLastServerConnection() == null;
 
-		if (autoReconnect.isActive() == false || autoReconnect.getLastServerConnection() == null) {
+		if (inactive || noConnection) {
 			return;
 		}
 
 		if (time <= 0) {
 			tryConnecting();
-		} else {
-			time--;
+			return;
+		}
 
-			if (reconnectBtn != null) {
-				reconnectBtn.setMessage(Text.literal(getText()));
-			}
+		time--;
+
+		if (reconnectBtn != null) {
+			reconnectBtn.setMessage(Text.literal(getText()));
 		}
 	}
 
 	@Unique
 	private String getText() {
-		String reconnectText = "Reconnect";
-		if (ModuleManager.getInstance().get(AutoReconnect.class).isActive())
-			reconnectText += " " + String.format("(%.1f)", time / 20);
-		return reconnectText;
+		boolean active = ModuleManager.getInstance().get(AutoReconnect.class).isActive();
+		return active
+			? "Reconnect " + String.format("(%.1f)", time / 20)
+			: "Reconnect";
 	}
 
 	@Unique
 	private void tryConnecting() {
 		var lastServer = ModuleManager.getInstance().get(AutoReconnect.class).getLastServerConnection();
 		ConnectScreen.connect(
-				new TitleScreen(),
-				MinecraftClient.getInstance(),
-				lastServer.left(),
-				lastServer.right(),
-				false,
-				null
+			new TitleScreen(),
+			MinecraftClient.getInstance(),
+			lastServer.left(),
+			lastServer.right(),
+			false,
+			null
 		);
 	}
 }

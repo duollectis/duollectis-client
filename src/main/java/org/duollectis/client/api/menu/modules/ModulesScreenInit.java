@@ -4,288 +4,343 @@ import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.text.Text;
 import org.duollectis.client.api.i18n.ClientConfig;
 import org.duollectis.client.api.i18n.ClientLocale;
+import org.duollectis.client.api.menu.widget.BoolToggleWidget;
 import org.duollectis.client.api.menu.widget.EnumDropdownWidget;
+import org.duollectis.client.api.menu.widget.ItemListWidget;
+import org.duollectis.client.api.menu.widget.NumericInputWidget;
 import org.duollectis.client.api.menu.widget.StyledSliderWidget;
-import org.duollectis.client.api.menu.widget.StyledToggleButton;
-import org.duollectis.client.settings.BoolSetting;
-import org.duollectis.client.settings.ColorSetting;
-import org.duollectis.client.settings.DoubleSetting;
-import org.duollectis.client.settings.EnumSetting;
-import org.duollectis.client.settings.IntSetting;
 import org.duollectis.client.api.settings.Setting;
-import org.duollectis.client.settings.SettingGroup;
+import org.duollectis.client.settings.*;
+import org.duollectis.client.utils.INamed;
 import org.duollectis.client.utils.color.Color;
 
+import java.util.List;
 import java.util.function.Consumer;
 
 import static org.duollectis.client.api.menu.modules.ModulesScreenLayout.*;
 
+/**
+ * Утилита инициализации виджетов экрана модулей: создаёт слайдеры, поля ввода,
+ * переключатели и выпадающие списки для каждой настройки выбранного модуля,
+ * а также виджеты панели аккаунтов.
+ */
 final class ModulesScreenInit {
 
-    private ModulesScreenInit() {}
+	private ModulesScreenInit() {}
 
-    static void langDropdown(ModulesScreen screen) {
-        int langY = screen.panelY + PANEL_H + PAD;
-        int langX = screen.panelX + PANEL_W - LANG_FIELD_W - PAD;
+	static void langDropdown(ModulesScreen screen) {
+		int langY = screen.panelY + PANEL_H + PAD;
+		int langX = screen.panelX + PANEL_W - LANG_FIELD_W - PAD;
 
-        ClientLocale[] locales = ClientLocale.values();
-        ClientLocale current = ClientConfig.getInstance().getLocale();
+		ClientLocale[] locales = ClientLocale.values();
+		ClientLocale current = ClientConfig.getInstance().getLocale();
 
-        EnumDropdownWidget<ClientLocale> dropdown = new EnumDropdownWidget<>(
-            screen.textRenderer(),
-            langX,
-            langY,
-            LANG_FIELD_W,
-            ROW_H,
-            locales,
-            current,
-            ClientConfig.getInstance()::setLocale
-        );
+		EnumDropdownWidget<ClientLocale> dropdown = screen.register(new EnumDropdownWidget<>(
+				screen.textRenderer(),
+				langX,
+				langY,
+				LANG_FIELD_W,
+				ROW_H,
+				locales,
+				current,
+				ClientConfig.getInstance()::setLocale
+		));
 
-        screen.langDropdown = dropdown;
-        screen.langDropdowns.add(dropdown);
-        screen.register(dropdown);
-    }
+		screen.langDropdown = dropdown;
+		screen.langDropdowns.add(dropdown);
+	}
 
-    static void settingsWidgets(ModulesScreen screen) {
-        if (screen.selectedModule == null) {
-            return;
-        }
+	static void accountWidgets(ModulesScreen screen) {
+		int contentX = screen.panelX + LIST_W + DIVIDER_W + PAD;
+		int listY = screen.panelY + PAD;
+		int plusBtnW = 20;
 
-        int settingsX = screen.panelX + LIST_W + DIVIDER_W + PAD;
-        int settingsW = PANEL_W - LIST_W - DIVIDER_W - PAD * 2;
-        int sliderW = settingsW - SLIDER_INPUT_W - PAD;
+		screen.accAddAccountBtn[0] = contentX;
+		screen.accAddAccountBtn[1] = listY;
+		screen.accAddAccountBtn[2] = plusBtnW;
+		screen.accAddAccountBtn[3] = ACC_FIELD_H;
 
-        int panelTop = screen.panelY + PAD + ROW_H + ROW_GAP;
-        int panelBottom = screen.panelY + PANEL_H - PAD;
-        int y = panelTop - screen.settingsScroll;
+		screen.accAddGroupBtn[0] = contentX + plusBtnW + ACC_ROW_GAP;
+		screen.accAddGroupBtn[1] = listY;
+		screen.accAddGroupBtn[2] = plusBtnW;
+		screen.accAddGroupBtn[3] = ACC_FIELD_H;
+	}
 
-        for (SettingGroup group : screen.selectedModule.getSettings().getGroups()) {
-            y += ROW_H + ROW_GAP;
+	static void settingsWidgets(ModulesScreen screen) {
+		if (screen.selectedModule == null) {
+			return;
+		}
 
-            for (Setting<?> setting : group.settings()) {
-                if (setting.isVisible() == false) {
-                    continue;
-                }
+		int settingsX = screen.panelX + LIST_W + DIVIDER_W + PAD;
+		int settingsW = PANEL_W - LIST_W - DIVIDER_W - PAD * 2;
+		int panelTop = screen.panelY + PAD + ROW_H;
+		int panelBottom = screen.panelY + PANEL_H - PAD;
+		int y = panelTop - screen.settingsScroll;
+		int dividerH = SETTING_DIVIDER_PAD * 2 + 1;
 
-                int controlY = y + LABEL_H;
+		for (SettingGroup group : screen.selectedModule.getSettings().getGroups()) {
+			y += ROW_H;
 
-                if (controlY + ROW_H > panelTop && y < panelBottom) {
-                    buildWidget(screen, setting, settingsX, controlY, settingsW, sliderW);
-                }
+			List<Setting<?>> visibleSettings = group.settings()
+			                                        .stream()
+			                                        .filter(Setting::isVisible)
+			                                        .toList();
 
-                y += SETTING_H + ROW_GAP;
-            }
-        }
-    }
+			for (int i = 0; i < visibleSettings.size(); i++) {
+				Setting<?> setting = visibleSettings.get(i);
+				int itemH = ModulesScreenRenderer.itemHeight(screen.textRenderer(), setting);
+				int nameH = screen.textRenderer().fontHeight;
+				int top = ModulesScreenRenderer.offsetTop(setting);
+				int gap = ModulesScreenRenderer.nameGap(setting);
+				boolean inline = setting instanceof BoolSetting || setting instanceof EnumSetting;
+				int nameY = y + top;
+				int controlY = inline ? nameY : nameY + nameH + gap;
 
-    @SuppressWarnings("rawtypes")
-    private static void buildWidget(
-            ModulesScreen screen,
-            Setting<?> setting,
-            int x,
-            int controlY,
-            int w,
-            int sliderW
-    ) {
-        if (setting instanceof BoolSetting boolSetting) {
-            StyledToggleButton toggle = new StyledToggleButton(
-                screen.textRenderer(), x, controlY, w, ROW_H,
-                boolSetting.get(), boolSetting::set
-            );
-            screen.toggles.add(toggle);
-            screen.register(toggle);
-            return;
-        }
+				if (controlY + ROW_H > panelTop && y < panelBottom) {
+					buildWidget(screen, setting, settingsX, nameY, controlY, settingsW);
+				}
 
-        if (setting instanceof IntSetting intSetting) {
-            buildIntWidget(screen, intSetting, x, controlY, w, sliderW);
-            return;
-        }
+				y += itemH;
 
-        if (setting instanceof DoubleSetting doubleSetting) {
-            buildDoubleWidget(screen, doubleSetting, x, controlY, w, sliderW);
-            return;
-        }
+				if (i < visibleSettings.size() - 1) {
+					y += dividerH;
+				}
+			}
+		}
+	}
 
-        if (setting instanceof ColorSetting colorSetting) {
-            TextFieldWidget field = styledTextField(
-                screen,
-                x, controlY, w,
-                String.format("%08X", colorSetting.get().getPacked()),
-                text -> {
-                    try {
-                        colorSetting.set(new Color((int) Long.parseLong(text.trim(), 16)));
-                    } catch (NumberFormatException ignored) {
-                    }
-                }
-            );
-            screen.textFields.add(field);
-            screen.register(field);
-            return;
-        }
+	@SuppressWarnings("rawtypes")
+	private static void buildWidget(
+			ModulesScreen screen,
+			Setting<?> setting,
+			int x,
+			int nameY,
+			int controlY,
+			int w
+	) {
+		if (setting instanceof BoolSetting boolSetting) {
+			BoolToggleWidget toggle = new BoolToggleWidget(
+					screen.textRenderer(), x, controlY, w, ROW_H,
+					setting.getName(), boolSetting.get(), boolSetting::set
+			);
 
-        if (setting instanceof EnumSetting enumSetting) {
-            Enum<?> current = (Enum<?>) enumSetting.get();
-            Enum<?>[] values = current.getDeclaringClass().getEnumConstants();
-            EnumDropdownWidget<?> dropdown = buildEnumDropdown(
-                screen, x, controlY, w, values, current, enumSetting
-            );
-            screen.dropdowns.add(dropdown);
-            screen.register(dropdown);
-        }
-    }
+			screen.boolToggles.add(toggle);
+			screen.register(toggle);
+			return;
+		}
 
-    private static void buildIntWidget(
-            ModulesScreen screen,
-            IntSetting intSetting,
-            int x,
-            int controlY,
-            int w,
-            int sliderW
-    ) {
-        if (intSetting.isNoSlider()) {
-            TextFieldWidget field = styledTextField(
-                screen,
-                x, controlY, w,
-                String.valueOf(intSetting.get()),
-                text -> {
-                    try {
-                        intSetting.set(Integer.parseInt(text.trim()));
-                    } catch (NumberFormatException ignored) {
-                    }
-                }
-            );
-            screen.textFields.add(field);
-            screen.register(field);
-            return;
-        }
+		if (setting instanceof IntSetting intSetting) {
+			buildIntWidget(screen, intSetting, x, nameY, controlY, w);
+			return;
+		}
 
-        int inputX = x + sliderW + PAD;
+		if (setting instanceof DoubleSetting doubleSetting) {
+			buildDoubleWidget(screen, doubleSetting, x, nameY, controlY, w);
+			return;
+		}
 
-        StyledSliderWidget slider = new StyledSliderWidget(
-            screen.textRenderer(), x, controlY, sliderW, ROW_H,
-            intSetting.getSliderMin(), intSetting.getSliderMax(), intSetting.get(),
-            0, value -> intSetting.set((int) Math.round(value))
-        );
+		if (setting instanceof ColorSetting colorSetting) {
+			registerPlainTextField(
+					screen,
+					x, controlY, w,
+					String.format("%08X", colorSetting.get().getPacked()),
+					text -> {
+						try {
+							colorSetting.set(new Color((int) Long.parseLong(text.trim(), 16)));
+						}
+						catch (NumberFormatException ignored) {
+						}
+					}
+			);
+			return;
+		}
 
-        TextFieldWidget input = styledTextField(
-            screen,
-            inputX, controlY, SLIDER_INPUT_W,
-            String.valueOf(intSetting.get()),
-            text -> {
-                try {
-                    int parsed = Integer.parseInt(text.trim());
-                    intSetting.set(parsed);
-                    slider.setValue(parsed);
-                } catch (NumberFormatException ignored) {
-                }
-            }
-        );
+		if (setting instanceof EnumSetting enumSetting) {
+			Enum<?> current = (Enum<?>) enumSetting.get();
+			Enum<?>[] values = current.getDeclaringClass().getEnumConstants();
+			int dropW = computeEnumDropdownWidth(screen, values);
+			EnumDropdownWidget<?> dropdown = buildEnumDropdown(
+					screen, x + w - dropW, controlY, dropW, values, current, enumSetting
+			);
+			screen.dropdowns.add(dropdown);
+			screen.register(dropdown);
+			return;
+		}
 
-        slider.setOnChange(value -> {
-            int rounded = (int) Math.round(value.doubleValue());
-            intSetting.set(rounded);
-            input.setText(String.valueOf(rounded));
-        });
+		if (setting instanceof ItemListSetting itemListSetting) {
+			ItemListWidget widget = new ItemListWidget(
+					screen.textRenderer(), x, controlY, w, ROW_H, itemListSetting
+			);
+			screen.itemListWidgets.add(widget);
+		}
+	}
 
-        screen.sliders.add(slider);
-        screen.register(slider);
-        screen.textFields.add(input);
-        screen.register(input);
-    }
+	private static void buildIntWidget(
+			ModulesScreen screen,
+			IntSetting intSetting,
+			int x,
+			int nameY,
+			int controlY,
+			int w
+	) {
+		if (intSetting.isSlider()) {
+			int inputW = computeInputWidth(screen, String.valueOf(intSetting.get()), intSetting.getSuffix());
 
-    private static void buildDoubleWidget(
-            ModulesScreen screen,
-            DoubleSetting doubleSetting,
-            int x,
-            int controlY,
-            int w,
-            int sliderW
-    ) {
-        if (doubleSetting.isNoSlider()) {
-            TextFieldWidget field = styledTextField(
-                screen,
-                x, controlY, w,
-                String.valueOf(doubleSetting.get()),
-                text -> {
-                    try {
-                        doubleSetting.set(Double.parseDouble(text.trim()));
-                    } catch (NumberFormatException ignored) {
-                    }
-                }
-            );
-            screen.textFields.add(field);
-            screen.register(field);
-            return;
-        }
+			NumericInputWidget input = new NumericInputWidget(
+					screen.textRenderer(),
+					x + w - inputW, nameY, inputW, ROW_H,
+					w / 2,
+					intSetting.getMin(), intSetting.getMax(),
+					true, 0,
+					intSetting.getSuffix(),
+					String.valueOf(intSetting.get()),
+					value -> intSetting.set((int) Math.round(value))
+			);
 
-        int inputX = x + sliderW + PAD;
-        int decimals = doubleSetting.getDecimalPlaces();
+			StyledSliderWidget slider = new StyledSliderWidget(
+					screen.textRenderer(), x, controlY, w, ROW_H,
+					intSetting.getSliderMin(), intSetting.getSliderMax(), intSetting.get(),
+					0, value -> intSetting.set((int) Math.round(value))
+			);
 
-        StyledSliderWidget slider = new StyledSliderWidget(
-            screen.textRenderer(), x, controlY, sliderW, ROW_H,
-            doubleSetting.getSliderMin(), doubleSetting.getSliderMax(), doubleSetting.get(),
-            decimals, value -> doubleSetting.set(value)
-        );
+			slider.setOnChange(value -> {
+				int rounded = (int) Math.round(value);
+				intSetting.set(rounded);
+				input.updateDisplay(rounded);
+			});
 
-        TextFieldWidget input = styledTextField(
-            screen,
-            inputX, controlY, SLIDER_INPUT_W,
-            String.format("%." + decimals + "f", doubleSetting.get()),
-            text -> {
-                try {
-                    double parsed = Double.parseDouble(text.trim());
-                    doubleSetting.set(parsed);
-                    slider.setValue(parsed);
-                } catch (NumberFormatException ignored) {
-                }
-            }
-        );
+			registerSliderWithInput(screen, slider, input);
+			return;
+		}
 
-        slider.setOnChange(value -> {
-            doubleSetting.set(value.doubleValue());
-            input.setText(String.format("%." + decimals + "f", value.doubleValue()));
-        });
+		registerPlainTextField(
+				screen, x, controlY, w,
+				String.valueOf(intSetting.get()),
+				text -> {
+					try {
+						intSetting.set(Integer.parseInt(text.trim()));
+					}
+					catch (NumberFormatException ignored) {
+					}
+				}
+		);
+	}
 
-        screen.sliders.add(slider);
-        screen.register(slider);
-        screen.textFields.add(input);
-        screen.register(input);
-    }
+	private static void buildDoubleWidget(
+			ModulesScreen screen,
+			DoubleSetting doubleSetting,
+			int x,
+			int nameY,
+			int controlY,
+			int w
+	) {
+		if (doubleSetting.isSlider()) {
+			int decimals = doubleSetting.getDecimalPlaces();
+			String formatted = String.format("%." + decimals + "f", doubleSetting.get());
+			int inputW = computeInputWidth(screen, formatted, doubleSetting.getSuffix());
 
-    @SuppressWarnings({"unchecked", "rawtypes"})
-    private static <E extends Enum<E>> EnumDropdownWidget<E> buildEnumDropdown(
-            ModulesScreen screen,
-            int x,
-            int y,
-            int w,
-            Enum<?>[] rawValues,
-            Enum<?> rawInitial,
-            EnumSetting rawSetting
-    ) {
-        E[] values = (E[]) rawValues;
-        E initial = (E) rawInitial;
-        return new EnumDropdownWidget<>(
-            screen.textRenderer(), x, y, w, ROW_H,
-            values, initial,
-            (Consumer<E>) rawSetting::set
-        );
-    }
+			NumericInputWidget input = new NumericInputWidget(
+					screen.textRenderer(),
+					x + w - inputW, nameY, inputW, ROW_H,
+					w / 2,
+					doubleSetting.getMin(), doubleSetting.getMax(),
+					false, decimals,
+					doubleSetting.getSuffix(),
+					formatted,
+					doubleSetting::set
+			);
 
-    private static TextFieldWidget styledTextField(
-            ModulesScreen screen,
-            int x,
-            int y,
-            int w,
-            String initialText,
-            Consumer<String> onChange
-    ) {
-        TextFieldWidget field = new TextFieldWidget(screen.textRenderer(), x, y, w, ROW_H, Text.empty());
-        field.setText(initialText);
-        field.setChangedListener(onChange);
-        field.setDrawsBackground(false);
-        return field;
-    }
+			StyledSliderWidget slider = new StyledSliderWidget(
+					screen.textRenderer(), x, controlY, w, ROW_H,
+					doubleSetting.getSliderMin(), doubleSetting.getSliderMax(), doubleSetting.get(),
+					decimals, doubleSetting::set
+			);
 
+			slider.setOnChange(value -> {
+				doubleSetting.set(value.doubleValue());
+				input.updateDisplay(value.doubleValue());
+			});
+
+			registerSliderWithInput(screen, slider, input);
+			return;
+		}
+
+		registerPlainTextField(
+				screen, x, controlY, w,
+				String.valueOf(doubleSetting.get()),
+				text -> {
+					try {
+						doubleSetting.set(Double.parseDouble(text.trim()));
+					}
+					catch (NumberFormatException ignored) {
+					}
+				}
+		);
+	}
+
+	private static void registerSliderWithInput(
+			ModulesScreen screen,
+			StyledSliderWidget slider,
+			NumericInputWidget input
+	) {
+		input.linkSlider(slider);
+		input.setOnBlur(() -> screen.setFocused(null));
+
+		screen.sliders.add(slider);
+		screen.register(slider);
+		screen.textFields.add(input);
+		screen.register(input);
+	}
+
+	private static void registerPlainTextField(
+			ModulesScreen screen,
+			int x,
+			int y,
+			int w,
+			String initialText,
+			Consumer<String> onChange
+	) {
+		TextFieldWidget field = new TextFieldWidget(screen.textRenderer(), x, y, w, ROW_H, Text.empty());
+		field.setText(initialText);
+		field.setChangedListener(onChange);
+		field.setDrawsBackground(false);
+		screen.textFields.add(field);
+		screen.register(field);
+	}
+
+	@SuppressWarnings({"unchecked", "rawtypes"})
+	private static <E extends Enum<E>> EnumDropdownWidget<E> buildEnumDropdown(
+			ModulesScreen screen,
+			int x,
+			int y,
+			int w,
+			Enum<?>[] rawValues,
+			Enum<?> rawInitial,
+			EnumSetting rawSetting
+	) {
+		E[] values = (E[]) rawValues;
+		E initial = (E) rawInitial;
+		return new EnumDropdownWidget<>(
+				screen.textRenderer(), x, y, w, ROW_H,
+				values, initial,
+				(Consumer<E>) rawSetting::set
+		);
+	}
+
+	private static int computeInputWidth(ModulesScreen screen, String number, String suffix) {
+		String display = suffix.isEmpty() ? number : number + " " + suffix;
+		return screen.textRenderer().getWidth(display) + 8;
+	}
+
+	private static int computeEnumDropdownWidth(ModulesScreen screen, Enum<?>[] values) {
+		int maxTextW = 0;
+
+		for (Enum<?> value : values) {
+			String label = value instanceof INamed named ? named.getName() : value.name();
+			int textW = screen.textRenderer().getWidth("● " + label);
+			maxTextW = Math.max(maxTextW, textW);
+		}
+
+		return maxTextW + 8;
+	}
 }

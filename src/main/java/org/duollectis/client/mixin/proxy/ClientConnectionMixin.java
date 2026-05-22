@@ -15,6 +15,11 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.net.InetSocketAddress;
 
+/**
+ * Mixin для {@link ClientConnection}: внедряет SOCKS4/SOCKS5
+ * прокси-обработчик в Netty-пайплайн соединения сразу после его инициализации,
+ * если в {@link ProxyManager} выбран активный прокси.
+ */
 @Mixin(ClientConnection.class)
 public abstract class ClientConnectionMixin {
 

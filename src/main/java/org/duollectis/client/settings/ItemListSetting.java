@@ -14,6 +14,11 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
+/**
+ * Настройка списка предметов Minecraft. Поддерживает опциональный фильтр,
+ * ограничивающий допустимые предметы, и флаг обхода фильтра при сохранении/загрузке
+ * (нужен для корректного восстановления ранее сохранённых значений).
+ */
 public class ItemListSetting extends Setting<List<Item>> {
 
 	@Getter
@@ -61,6 +66,7 @@ public class ItemListSetting extends Setting<List<Item>> {
 	public void resetImpl() {
 		value = new ArrayList<>(defaultValue);
 	}
+
 
 	@Override
 	protected boolean isValueValid(List<Item> value) {

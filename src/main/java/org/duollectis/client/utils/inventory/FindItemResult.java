@@ -1,48 +1,57 @@
 package org.duollectis.client.utils.inventory;
 
-import net.minecraft.client.MinecraftClient;
 import net.minecraft.util.Hand;
 
+import static org.duollectis.client.utils.MC.mc;
+
+/**
+ * Результат поиска предмета в инвентаре: индекс слота и количество найденных единиц.
+ * Слот {@code -1} означает, что предмет не найден ({@link #found()} вернёт {@code false}).
+ */
 public record FindItemResult(int slot, int count) {
 
-    private static final int OFFHAND_SLOT_ID = 45;
-    private static final int HOTBAR_START = 0;
-    private static final int HOTBAR_END = 8;
-    private static final int MAIN_INV_START = 9;
-    private static final int MAIN_INV_END = 35;
-    private static final int ARMOR_START = 36;
-    private static final int ARMOR_END = 39;
+	private static final int OFFHAND_SLOT_ID = 45;
+	private static final int HOTBAR_START = 0;
+	private static final int HOTBAR_END = 8;
+	private static final int MAIN_INV_START = 9;
+	private static final int MAIN_INV_END = 35;
+	private static final int ARMOR_START = 36;
+	private static final int ARMOR_END = 39;
 
-    public boolean found() {
-        return this.slot != -1;
-    }
+	public boolean found() {
+		return this.slot != -1;
+	}
 
-    public Hand getHand() {
-        if (this.slot == OFFHAND_SLOT_ID) {
-            return Hand.OFF_HAND;
-        }
+	/**
+	 * @return {@link Hand#MAIN_HAND} если слот совпадает с выбранным, {@link Hand#OFF_HAND} для слота 45,
+	 *         или {@code null} если предмет не в руке
+	 */
+	public Hand getHand() {
+		if (this.slot == OFFHAND_SLOT_ID) {
+			return Hand.OFF_HAND;
+		}
 
-        int selectedSlot = MinecraftClient.getInstance().player.getInventory().getSelectedSlot();
-        return this.slot == selectedSlot ? Hand.MAIN_HAND : null;
-    }
+		int selectedSlot = mc.player.getInventory().getSelectedSlot();
+		return this.slot == selectedSlot ? Hand.MAIN_HAND : null;
+	}
 
-    public boolean isMainHand() {
-        return this.getHand() == Hand.MAIN_HAND;
-    }
+	public boolean isMainHand() {
+		return this.getHand() == Hand.MAIN_HAND;
+	}
 
-    public boolean isOffhand() {
-        return this.getHand() == Hand.OFF_HAND;
-    }
+	public boolean isOffhand() {
+		return this.getHand() == Hand.OFF_HAND;
+	}
 
-    public boolean isHotbar() {
-        return this.slot >= HOTBAR_START && this.slot <= HOTBAR_END;
-    }
+	public boolean isHotbar() {
+		return this.slot >= HOTBAR_START && this.slot <= HOTBAR_END;
+	}
 
-    public boolean isMain() {
-        return this.slot >= MAIN_INV_START && this.slot <= MAIN_INV_END;
-    }
+	public boolean isMain() {
+		return this.slot >= MAIN_INV_START && this.slot <= MAIN_INV_END;
+	}
 
-    public boolean isArmor() {
-        return this.slot >= ARMOR_START && this.slot <= ARMOR_END;
-    }
+	public boolean isArmor() {
+		return this.slot >= ARMOR_START && this.slot <= ARMOR_END;
+	}
 }

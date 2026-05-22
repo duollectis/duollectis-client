@@ -1,5 +1,7 @@
 package org.duollectis.client.modules;
 
+import static org.duollectis.client.utils.MC.mc;
+
 import net.minecraft.client.gui.screen.DisconnectedScreen;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.screen.TitleScreen;
@@ -15,7 +17,10 @@ import org.duollectis.client.api.modules.Module;
 import org.duollectis.client.api.modules.ModuleInfo;
 import org.duollectis.client.api.modules.ModuleManager;
 import org.duollectis.client.api.settings.Setting;
-import org.duollectis.client.settings.*;
+import org.duollectis.client.settings.BoolSetting;
+import org.duollectis.client.settings.EnumSetting;
+import org.duollectis.client.settings.IntSetting;
+import org.duollectis.client.settings.ItemListSetting;
 import org.duollectis.client.utils.color.Color;
 import org.duollectis.client.utils.inventory.InvUtility;
 import org.duollectis.client.utils.text.TextUtil;
@@ -26,6 +31,11 @@ import java.util.List;
 @ModuleInfo(
 		value = "auto-log"
 )
+/**
+ * Модуль автоматического выхода из игры при достижении критического состояния.
+ * Поддерживает два режима триггера: по здоровью и по количеству тотемов,
+ * а также опциональное отображение ближайших игроков в сообщении о выходе.
+ */
 public class AutoLog extends Module {
 
 	private static final String GROUP_GENERAL = "General";
@@ -156,54 +166,69 @@ public class AutoLog extends Module {
 		}
 
 		switch (triggerMode.get()) {
-			case Health -> {
-				if (noTotemsOnly.get() == false || InvUtility.itemContains(Items.TOTEM_OF_UNDYING, true) == false) {
-					if (playerHealth <= health.get()) {
-						MutableText text = TextUtil.createText(
-								new TextUtil.TextSettings("Health was lower than ", new Color(0xFF3636), true)
-						);
-						text.append(TextUtil.createText(
-								new TextUtil.TextSettings(
-										health.get() + " ",
-										new Color(0xA381FF),
-										true,
-										false,
-										true,
-										false,
-										false
-								)
-						));
-						text.append(TextUtil.createText(
-								new TextUtil.TextSettings("Left: ", new Color(0xB93B28), true)
-						));
-						text.append(TextUtil.createText(
-								new TextUtil.TextSettings(
-										playerHealth + " ",
-										new Color(0xDF8BFF),
-										true,
-										false,
-										true,
-										false,
-										false
-								)
-						));
-						text.append(concNearbyPlayers());
-
-						_log(text);
-					}
-				}
-			}
-			case Totems -> {
-				int totems = InvUtility.countItem(Items.TOTEM_OF_UNDYING);
-				if (totems <= totemsCount.get()) {
-					_log(TextUtil
-							.createText(new TextUtil.TextSettings("Totems left:", new Color(0xFFCA59), true))
-							.append(TextUtil
-									.createText(new TextUtil.TextSettings(" " + totems, true))
-									.append(concNearbyPlayers())));
-				}
-			}
+			case Health -> checkHealthTrigger(playerHealth);
+			case Totems -> checkTotemsTrigger();
 		}
+	}
+
+	private void checkHealthTrigger(int playerHealth) {
+		boolean hasTotems = InvUtility.itemContains(Items.TOTEM_OF_UNDYING, true);
+
+		if (noTotemsOnly.get() && hasTotems) {
+			return;
+		}
+
+		if (playerHealth > health.get()) {
+			return;
+		}
+
+		MutableText text = TextUtil.createText(
+			new TextUtil.TextSettings("Health was lower than ", new Color(0xFF3636), true)
+		);
+		text.append(TextUtil.createText(
+			new TextUtil.TextSettings(
+				health.get() + " ",
+				new Color(0xA381FF),
+				true,
+				false,
+				true,
+				false,
+				false
+			)
+		));
+		text.append(TextUtil.createText(
+			new TextUtil.TextSettings("Left: ", new Color(0xB93B28), true)
+		));
+		text.append(TextUtil.createText(
+			new TextUtil.TextSettings(
+				playerHealth + " ",
+				new Color(0xDF8BFF),
+				true,
+				false,
+				true,
+				false,
+				false
+			)
+		));
+		text.append(concNearbyPlayers());
+
+		doLog(text);
+	}
+
+	private void checkTotemsTrigger() {
+		int totems = InvUtility.countItem(Items.TOTEM_OF_UNDYING);
+
+		if (totems > totemsCount.get()) {
+			return;
+		}
+
+		doLog(TextUtil
+			.createText(new TextUtil.TextSettings("Totems left:", new Color(0xFFCA59), true))
+			.append(TextUtil
+				.createText(new TextUtil.TextSettings(" " + totems, true))
+				.append(concNearbyPlayers())
+			)
+		);
 	}
 
 	private void collectNearbyPlayers() {
@@ -218,7 +243,7 @@ public class AutoLog extends Module {
 
 			int nearbyRange = nearbyPlayerRange.get();
 
-			if (player.squaredDistanceTo(mc.player) > nearbyRange * nearbyRange) {
+			if (player.squaredDistanceTo(mc.player) > (double) nearbyRange * nearbyRange) {
 				continue;
 			}
 
@@ -231,19 +256,19 @@ public class AutoLog extends Module {
 	}
 
 	private Text concNearbyPlayers() {
-		if (showNearbyPlayers.get() == false || nearbyPlayers.isEmpty()) {
+		if (nearbyPlayers.isEmpty() || !showNearbyPlayers.get()) {
 			return Text.empty();
 		}
 
 		MutableText text = TextUtil.createText(
-				new TextUtil.TextSettings("\nNearby players:\n", new Color(0x5A2AFF), true)
+			new TextUtil.TextSettings("\nNearby players:\n", new Color(0x5A2AFF), true)
 		);
 		text.append(TextUtil.createText(new TextUtil.TextSettings(nearbyPlayers + ".")));
 
 		return text;
 	}
 
-	private void _log(Text message) {
+	private void doLog(Text message) {
 		if (ignoreIfNaked.get() && InvUtility.isInventoryEmpty(ignoredItems.get())) {
 			return;
 		}

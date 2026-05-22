@@ -4,6 +4,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.duollectis.client.utils.INamed;
 
+/** Перечисление поддерживаемых локалей клиентского UI. */
 @Getter
 @RequiredArgsConstructor
 public enum ClientLocale implements INamed {

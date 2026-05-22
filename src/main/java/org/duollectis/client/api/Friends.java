@@ -5,6 +5,7 @@ import net.minecraft.entity.player.PlayerEntity;
 import java.util.ArrayList;
 import java.util.List;
 
+/** Реестр ников игроков, помеченных как «друзья» — используется модулями для исключения из обработки. */
 public class Friends {
 
 	private static final Friends INSTANCE = new Friends();

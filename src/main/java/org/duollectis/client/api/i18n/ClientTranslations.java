@@ -12,65 +12,84 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Синглтон-хранилище переводов клиентского UI.
+ * При вызове {@link #reload(ClientLocale)} сначала загружает английский fallback,
+ * затем поверх него накладывает выбранную локаль — так гарантируется отсутствие пустых ключей.
+ */
 @Slf4j
 public final class ClientTranslations {
 
-    private static final ClientLocale FALLBACK_LOCALE = ClientLocale.ENGLISH;
-    private static final String BUILTIN_LANG_PATH = "assets/duollectis/client/lang/";
+	private static final ClientLocale FALLBACK_LOCALE = ClientLocale.ENGLISH;
+	private static final String BUILTIN_LANG_PATH = "assets/duollectis/client/lang/";
 
-    @Getter
-    private static final ClientTranslations instance = new ClientTranslations();
+	@Getter
+	private static final ClientTranslations instance = new ClientTranslations();
 
-    private final Map<String, String> translations = new HashMap<>();
+	private final Map<String, String> translations = new HashMap<>();
 
-    private ClientTranslations() {}
+	private ClientTranslations() {}
 
-    public String translate(String key) {
-        return translations.getOrDefault(key, key);
-    }
+	/**
+	 * @param key ключ перевода
+	 * @return локализованная строка, или сам {@code key} если перевод не найден
+	 */
+	public String get(String key) {
+		return translations.getOrDefault(key, key);
+	}
 
-    public void reload(ClientLocale locale) {
-        translations.clear();
+	public String get(String key, String defaultsValue) {
+		return translations.getOrDefault(key, defaultsValue);
+	}
 
-        loadFromBuiltin(FALLBACK_LOCALE);
+	/**
+	 * Перезагружает переводы для указанной локали.
+	 * Всегда загружает английский fallback первым, затем поверх него — целевую локаль.
+	 *
+	 * @param locale целевая локаль
+	 */
+	public void reload(ClientLocale locale) {
+		translations.clear();
 
-        if (locale != FALLBACK_LOCALE) {
-            loadFromBuiltin(locale);
-        }
-    }
+		loadFromBuiltin(FALLBACK_LOCALE);
 
-    private void loadFromBuiltin(ClientLocale locale) {
-        String resourcePath = BUILTIN_LANG_PATH + locale.getFileName() + ".json";
-        InputStream stream = getClass().getClassLoader().getResourceAsStream(resourcePath);
+		if (locale != FALLBACK_LOCALE) {
+			loadFromBuiltin(locale);
+		}
+	}
 
-        if (stream == null) {
-            log.warn("Встроенный файл локали не найден: {}", resourcePath);
-            return;
-        }
+	private void loadFromBuiltin(ClientLocale locale) {
+		String resourcePath = BUILTIN_LANG_PATH + locale.getFileName() + ".json";
+		InputStream stream = getClass().getClassLoader().getResourceAsStream(resourcePath);
 
-        try (InputStreamReader reader = new InputStreamReader(stream, StandardCharsets.UTF_8)) {
-            JsonObject root = JsonParser.parseReader(reader).getAsJsonObject();
-            flattenInto(root, "", translations);
-        } catch (Exception e) {
-            log.error("Не удалось загрузить встроенный перевод: {}", locale.getFileName(), e);
-        }
-    }
+		if (stream == null) {
+			log.warn("Встроенный файл локали не найден: {}", resourcePath);
+			return;
+		}
 
-    /**
-     * Рекурсивно разворачивает вложенные JSON-объекты в плоскую карту.
-     * {"a": {"b": {"c": "val"}}} → "a.b.c" = "val"
-     */
-    private static void flattenInto(JsonObject node, String prefix, Map<String, String> target) {
-        for (Map.Entry<String, JsonElement> entry : node.entrySet()) {
-            String key = prefix.isEmpty() ? entry.getKey() : prefix + "." + entry.getKey();
-            JsonElement value = entry.getValue();
+		try (InputStreamReader reader = new InputStreamReader(stream, StandardCharsets.UTF_8)) {
+			JsonObject root = JsonParser.parseReader(reader).getAsJsonObject();
+			flattenInto(root, "", translations);
+		} catch (Exception e) {
+			log.error("Не удалось загрузить встроенный перевод: {}", locale.getFileName(), e);
+		}
+	}
 
-            if (value.isJsonObject()) {
-                flattenInto(value.getAsJsonObject(), key, target);
-            } else if (value.isJsonPrimitive()) {
-                target.put(key, value.getAsString());
-            }
-        }
-    }
+	/**
+	 * Рекурсивно разворачивает вложенные JSON-объекты в плоскую карту.
+	 * {"a": {"b": {"c": "val"}}} → "a.b.c" = "val"
+	 */
+	private static void flattenInto(JsonObject node, String prefix, Map<String, String> target) {
+		for (Map.Entry<String, JsonElement> entry : node.entrySet()) {
+			String key = prefix.isEmpty() ? entry.getKey() : prefix + "." + entry.getKey();
+			JsonElement value = entry.getValue();
+
+			if (value.isJsonObject()) {
+				flattenInto(value.getAsJsonObject(), key, target);
+			} else if (value.isJsonPrimitive()) {
+				target.put(key, value.getAsString());
+			}
+		}
+	}
 
 }

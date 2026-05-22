@@ -8,6 +8,9 @@ import org.duollectis.client.utils.IVisible;
 
 import java.util.function.Consumer;
 
+/**
+ * Целочисленная настройка модуля с поддержкой диапазона значений и опционального слайдера.
+ */
 public class IntSetting extends Setting<Integer> {
 
 	@Getter
@@ -25,6 +28,9 @@ public class IntSetting extends Setting<Integer> {
 	@Getter
 	private final boolean noSlider;
 
+	@Getter
+	private final String suffix;
+
 	private IntSetting(
 			String id,
 			String group,
@@ -36,7 +42,8 @@ public class IntSetting extends Setting<Integer> {
 			int max,
 			int sliderMin,
 			int sliderMax,
-			boolean noSlider
+			boolean noSlider,
+			String suffix
 	) {
 		super(id, group, defaultValue, onChanged, onModuleActivated, visible);
 
@@ -45,13 +52,19 @@ public class IntSetting extends Setting<Integer> {
 		this.sliderMin = sliderMin;
 		this.sliderMax = sliderMax;
 		this.noSlider = noSlider;
+		this.suffix = suffix;
+	}
+
+	public boolean isSlider() {
+		return !noSlider;
 	}
 
 	@Override
 	protected Integer parseImpl(String str) {
 		try {
 			return Integer.parseInt(str.trim());
-		} catch (NumberFormatException ignored) {
+		}
+		catch (NumberFormatException ignored) {
 			return null;
 		}
 	}
@@ -78,10 +91,11 @@ public class IntSetting extends Setting<Integer> {
 	public static class Builder extends SettingBuilder<Builder, Integer, IntSetting> {
 
 		private int min = Integer.MIN_VALUE;
-		private int max = Integer.MAX_VALUE;
+		public int max = Integer.MAX_VALUE;
 		private int sliderMin = 0;
 		private int sliderMax = 10;
 		private boolean noSlider = false;
+		private String suffix = "";
 
 		private Builder(String id) {
 			super(id, 0);
@@ -114,6 +128,11 @@ public class IntSetting extends Setting<Integer> {
 			return this;
 		}
 
+		public Builder suffix(String suffix) {
+			this.suffix = suffix;
+			return this;
+		}
+
 		@Override
 		public IntSetting done() {
 			return new IntSetting(
@@ -127,7 +146,8 @@ public class IntSetting extends Setting<Integer> {
 					max,
 					Math.max(sliderMin, min),
 					Math.min(sliderMax, max),
-					noSlider
+					noSlider,
+					suffix
 			);
 		}
 

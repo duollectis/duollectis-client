@@ -12,21 +12,25 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+/**
+ * Mixin для {@link ConnectScreen}: публикует {@link GameJoinedEvent} в момент
+ * начала подключения к серверу, передавая адрес и метаданные сервера.
+ */
 @Mixin(ConnectScreen.class)
 public abstract class ConnectScreenMixin {
 
-    @Inject(
-            method = "connect(Lnet/minecraft/client/MinecraftClient;Lnet/minecraft/client/network/ServerAddress;Lnet/minecraft/client/network/ServerInfo;Lnet/minecraft/client/network/CookieStorage;)V",
-            at = @At("HEAD")
-    )
-    private void duollectis$onGameJoined(
-            MinecraftClient client,
-            ServerAddress address,
-            ServerInfo info,
-            CookieStorage cookieStorage,
-            CallbackInfo ci
-    ) {
-        EventBus.getInstance().post(new GameJoinedEvent(address, info));
-    }
+	@Inject(
+			method = "connect(Lnet/minecraft/client/MinecraftClient;Lnet/minecraft/client/network/ServerAddress;Lnet/minecraft/client/network/ServerInfo;Lnet/minecraft/client/network/CookieStorage;)V",
+			at = @At("HEAD")
+	)
+	private void duollectis$onGameJoined(
+			MinecraftClient client,
+			ServerAddress address,
+			ServerInfo info,
+			CookieStorage cookieStorage,
+			CallbackInfo ci
+	) {
+		EventBus.getInstance().post(new GameJoinedEvent(address, info));
+	}
 
 }

@@ -8,6 +8,10 @@ import org.duollectis.client.utils.color.Color;
 
 import java.util.function.Consumer;
 
+/**
+ * Настройка цвета. Сериализует значение как упакованный ARGB-int,
+ * парсит из hex-строки (например, {@code "FFFFFFFF"}).
+ */
 public class ColorSetting extends Setting<Color> {
 
 	private ColorSetting(

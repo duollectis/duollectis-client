@@ -1,4 +1,21 @@
 {
+    "screen.duollectis.account_manager.title": "Менеджер аккаунтов",
+    "screen.duollectis.account_manager.list.title": "Аккаунты",
+    "screen.duollectis.account_manager.section.add": "Добавить аккаунт",
+    "screen.duollectis.account_manager.field.nickname": "Никнейм",
+    "screen.duollectis.account_manager.btn.add": "Добавить",
+    "screen.duollectis.account_manager.btn.remove": "Удалить",
+    "screen.duollectis.account_manager.btn.switch": "Переключить",
+    "screen.duollectis.account_manager.btn.sort_az": "Сорт. A→Z",
+    "screen.duollectis.account_manager.current": "Текущий ник: ",
+    "screen.duollectis.account_manager.msg.empty_name": "Введите никнейм",
+    "screen.duollectis.account_manager.msg.name_too_long": "Никнейм слишком длинный (макс. 16)",
+    "screen.duollectis.account_manager.msg.already_exists": "Такой аккаунт уже есть",
+    "screen.duollectis.account_manager.msg.added": "Аккаунт добавлен",
+    "screen.duollectis.account_manager.msg.removed": "Аккаунт удалён",
+    "screen.duollectis.account_manager.msg.none_selected": "Аккаунт не выбран",
+    "screen.duollectis.account_manager.msg.switched": "Переключено на: ",
+    "screen.duollectis.account_manager.msg.sorted": "Группа отсортирована",
     "duollectis.client": {
         "global": {
             "settings": {

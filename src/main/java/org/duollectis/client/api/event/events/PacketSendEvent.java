@@ -5,10 +5,11 @@ import lombok.RequiredArgsConstructor;
 import net.minecraft.network.packet.Packet;
 import org.duollectis.client.api.event.CancellableEvent;
 
+/** Отменяемое событие отправки исходящего пакета на сервер (до фактической отправки). */
 @Getter
 @RequiredArgsConstructor
 public final class PacketSendEvent extends CancellableEvent {
 
-    private final Packet<?> packet;
+	private final Packet<?> packet;
 
 }

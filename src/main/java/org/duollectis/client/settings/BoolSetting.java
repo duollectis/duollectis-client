@@ -8,6 +8,9 @@ import org.duollectis.client.utils.IVisible;
 import java.util.List;
 import java.util.function.Consumer;
 
+/**
+ * Булева настройка модуля. Поддерживает парсинг из строк {@code "true"/"false"/"toggle"}.
+ */
 public class BoolSetting extends Setting<Boolean> {
 
 	private static final List<String> SUGGESTIONS = List.of("true", "false", "toggle");

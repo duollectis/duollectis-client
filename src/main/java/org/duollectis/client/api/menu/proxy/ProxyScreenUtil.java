@@ -8,56 +8,60 @@ import net.minecraft.text.Text;
 import static org.duollectis.client.api.menu.proxy.ProxyScreenLayout.FIELD_H;
 import static org.duollectis.client.api.menu.proxy.ProxyScreenLayout.LABEL_H;
 
+/**
+ * Вспомогательные методы экрана прокси: отрисовка рамок, заголовков секций,
+ * парсинг чисел и фабрики текстовых полей.
+ */
 final class ProxyScreenUtil {
 
-    static final int ENTRY_H = 22;
+ static final int ENTRY_H = 22;
 
-    private ProxyScreenUtil() {}
+ private ProxyScreenUtil() {}
 
-    static Text translatable(String key) {
-        return Text.translatable(key);
-    }
+ static Text translatable(String key) {
+		return Text.translatable(key);
+	}
 
-    static String translatableString(String key) {
-        return Text.translatable(key).getString();
-    }
+	static String translatableString(String key) {
+		return Text.translatable(key).getString();
+	}
 
-    static String tsa(String key, Object... args) {
-        return String.format(Text.translatable(key).getString(), args);
-    }
+	static String tsa(String key, Object... args) {
+		return String.format(Text.translatable(key).getString(), args);
+	}
 
-    static void drawRect(DrawContext ctx, int x, int y, int w, int h, int color) {
-        ctx.fill(x, y, x + w, y + 1, color);
-        ctx.fill(x, y + h - 1, x + w, y + h, color);
-        ctx.fill(x, y, x + 1, y + h, color);
-        ctx.fill(x + w - 1, y, x + w, y + h, color);
-    }
+	static void drawRect(DrawContext ctx, int x, int y, int w, int h, int color) {
+		ctx.fill(x, y, x + w, y + 1, color);
+		ctx.fill(x, y + h - 1, x + w, y + h, color);
+		ctx.fill(x, y, x + 1, y + h, color);
+		ctx.fill(x + w - 1, y, x + w, y + h, color);
+	}
 
-    static void drawSectionHeader(DrawContext ctx, TextRenderer tr, int x, int y, int w, String label) {
-        ctx.drawTextWithShadow(tr, Text.literal(label), x, y, 0xFF88AACC);
-        int lineY = y + LABEL_H + 1;
-        ctx.fill(x, lineY, x + w, lineY + 1, 0xFF334455);
-    }
+	static void drawSectionHeader(DrawContext ctx, TextRenderer tr, int x, int y, int w, String label) {
+		ctx.drawTextWithShadow(tr, Text.literal(label), x, y, 0xFFAAC8F0);
+		int lineY = y + LABEL_H + 1;
+		ctx.fill(x, lineY, x + w, lineY + 1, 0xFF1E2A40);
+	}
 
-    static int parseIntOr(String s, int fallback) {
-        try {
-            return Integer.parseInt(s.trim());
-        } catch (NumberFormatException e) {
-            return fallback;
-        }
-    }
+	static int parseIntOr(String s, int fallback) {
+		try {
+			return Integer.parseInt(s.trim());
+		} catch (NumberFormatException e) {
+			return fallback;
+		}
+	}
 
-    static TextFieldWidget field(TextRenderer tr, int x, int y, int w, String placeholder) {
-        TextFieldWidget f = new TextFieldWidget(tr, x, y, w, FIELD_H, Text.empty());
-        f.setPlaceholder(Text.translatable(placeholder));
-        return f;
-    }
+	static TextFieldWidget field(TextRenderer tr, int x, int y, int w, String placeholder) {
+		TextFieldWidget f = new TextFieldWidget(tr, x, y, w, FIELD_H, Text.empty());
+		f.setPlaceholder(Text.translatable(placeholder));
+		return f;
+	}
 
-    static TextFieldWidget numericField(TextRenderer tr, int x, int y, int w, int maxLen, String initialValue, String digitRegex) {
-        TextFieldWidget f = new TextFieldWidget(tr, x, y, w, FIELD_H, Text.empty());
-        f.setMaxLength(maxLen);
-        f.setText(initialValue);
-        f.setTextPredicate(v -> v.isEmpty() || v.matches(digitRegex));
-        return f;
-    }
+	static TextFieldWidget numericField(TextRenderer tr, int x, int y, int w, int maxLen, String initialValue, String digitRegex) {
+		TextFieldWidget f = new TextFieldWidget(tr, x, y, w, FIELD_H, Text.empty());
+		f.setMaxLength(maxLen);
+		f.setText(initialValue);
+		f.setTextPredicate(v -> v.isEmpty() || v.matches(digitRegex));
+		return f;
+	}
 }

@@ -4,4 +4,5 @@ import org.duollectis.client.api.settings.Setting;
 
 import java.util.List;
 
-public record SettingGroup(String name, List<Setting<?>> settings) {}
+/** Именованная группа настроек для визуальной группировки в UI панели модуля. */
+public record SettingGroup(String id, List<Setting<?>> settings) {}

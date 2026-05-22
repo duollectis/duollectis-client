@@ -8,26 +8,30 @@ import org.duollectis.client.api.proxy.ProxyManager;
 
 import java.util.List;
 
-import static org.duollectis.client.api.menu.proxy.ProxyScreenUtil.*;
 import static org.duollectis.client.api.menu.proxy.ProxyScreenLayout.*;
+import static org.duollectis.client.api.menu.proxy.ProxyScreenUtil.*;
 
+/**
+ * Утилита рендеринга экрана прокси: отрисовывает список прокси, боковую панель
+ * с метками, прогресс-бар чекера и управляет состоянием кнопок.
+ */
 final class ProxyScreenRenderer {
 
-	private ProxyScreenRenderer() {}
+ private ProxyScreenRenderer() {}
 
-	static void renderList(ProxyScreen s, DrawContext ctx, List<ProxyListEntry> entries, int mx, int my) {
+ static void renderList(ProxyScreen s, DrawContext ctx, List<ProxyListEntry> entries, int mx, int my) {
 		int lx = s.lx(), ly = s.ly(), lw = s.lw(), lh = s.lh();
 
 		s.listScroll = Math.clamp(entries.size() - s.mv(), 0, s.listScroll);
 
 		ctx.drawTextWithShadow(
-				s.textRenderer(),
-				Text.literal(
-						translatableString("screen.duollectis.proxy_manager.list.raw")
-								+ " (" + s.cachedList.size() + ")"
-								+ "  [" + s.filterDropdown.getSelected().name() + "]"
-				),
-				lx, ly - 10, 0xFFAAAAAA
+			s.textRenderer(),
+			Text.literal(
+				translatableString("screen.duollectis.proxy_manager.list.raw")
+					+ " (" + s.cachedList.size() + ")"
+					+ "  [" + s.filterDropdown.getSelected().name() + "]"
+			),
+			lx, ly - 10, 0xFF6A7A8A
 		);
 
 		ProxyListRenderer.renderList(
@@ -56,43 +60,43 @@ final class ProxyScreenRenderer {
 		py += SEC_H;
 
 		ctx.drawTextWithShadow(
-				s.textRenderer(),
-				translatable("screen.duollectis.proxy_manager.label.name"),
-				sx,
-				py,
-				0xFFAAAAAA
+			s.textRenderer(),
+			translatable("screen.duollectis.proxy_manager.label.name"),
+			sx,
+			py,
+			0xFF6A7A8A
 		);
 		py += LABEL_H + FIELD_H + ROW_GAP;
 
 		ctx.drawTextWithShadow(
-				s.textRenderer(),
-				translatable("screen.duollectis.proxy_manager.label.address"),
-				sx,
-				py,
-				0xFFAAAAAA
+			s.textRenderer(),
+			translatable("screen.duollectis.proxy_manager.label.address"),
+			sx,
+			py,
+			0xFF6A7A8A
 		);
 		ctx.drawTextWithShadow(
-				s.textRenderer(),
-				translatable("screen.duollectis.proxy_manager.label.port"),
-				sx + addrW + ROW_GAP,
-				py,
-				0xFFAAAAAA
+			s.textRenderer(),
+			translatable("screen.duollectis.proxy_manager.label.port"),
+			sx + addrW + ROW_GAP,
+			py,
+			0xFF6A7A8A
 		);
 		py += LABEL_H + FIELD_H + ROW_GAP;
 
 		ctx.drawTextWithShadow(
-				s.textRenderer(),
-				translatable("screen.duollectis.proxy_manager.label.username"),
-				sx,
-				py,
-				0xFFAAAAAA
+			s.textRenderer(),
+			translatable("screen.duollectis.proxy_manager.label.username"),
+			sx,
+			py,
+			0xFF6A7A8A
 		);
 		ctx.drawTextWithShadow(
-				s.textRenderer(),
-				translatable("screen.duollectis.proxy_manager.label.password"),
-				sx + addrW + ROW_GAP,
-				py,
-				0xFFAAAAAA
+			s.textRenderer(),
+			translatable("screen.duollectis.proxy_manager.label.password"),
+			sx + addrW + ROW_GAP,
+			py,
+			0xFF6A7A8A
 		);
 
 		py = sidebarY() + FORM_H;
@@ -111,42 +115,42 @@ final class ProxyScreenRenderer {
 				.getWidth(translatable("screen.duollectis.proxy_manager.label.max_pings")) + 4;
 
 		ctx.drawTextWithShadow(
-				s.textRenderer(),
-				translatable("screen.duollectis.proxy_manager.label.max_pings"),
-				sx,
-				py + 6,
-				0xFFAAAAAA
+			s.textRenderer(),
+			translatable("screen.duollectis.proxy_manager.label.max_pings"),
+			sx,
+			py + 6,
+			0xFF6A7A8A
 		);
 
 		ctx.drawTextWithShadow(
-				s.textRenderer(),
-				translatable("screen.duollectis.proxy_manager.label.delay_ms"),
-				sx + maxPingsLabelW + NUM_W + ROW_GAP,
-				py + 6,
-				0xFFAAAAAA
+			s.textRenderer(),
+			translatable("screen.duollectis.proxy_manager.label.delay_ms"),
+			sx + maxPingsLabelW + NUM_W + ROW_GAP,
+			py + 6,
+			0xFF6A7A8A
 		);
 
 		py += FIELD_H + ROW_GAP;
 
 		ctx.drawTextWithShadow(
-				s.textRenderer(),
-				translatable("screen.duollectis.proxy_manager.label.threads"),
-				sx,
-				py + 6,
-				0xFFAAAAAA
+			s.textRenderer(),
+			translatable("screen.duollectis.proxy_manager.label.threads"),
+			sx,
+			py + 6,
+			0xFF6A7A8A
 		);
 
 		py += FIELD_H + ROW_GAP;
 
 		ctx.drawTextWithShadow(
-				s.textRenderer(),
-				translatable("screen.duollectis.proxy_manager.label.target"),
-				sx,
-				py,
-				0xFFAAAAAA
+			s.textRenderer(),
+			translatable("screen.duollectis.proxy_manager.label.target"),
+			sx,
+			py,
+			0xFF6A7A8A
 		);
 
-		ctx.fill(sx - PAD / 2, sidebarY() - 2, sx - PAD / 2 + 1, s.height - PAD, 0xFF334455);
+		ctx.fill(sx - PAD / 2, sidebarY() - 2, sx - PAD / 2 + 1, s.height - PAD, 0xFF1E2A40);
 	}
 
 	static void renderOverlay(ProxyScreen s, DrawContext ctx, List<Proxy> all) {
@@ -154,9 +158,9 @@ final class ProxyScreenRenderer {
 
 		if (s.editingProxy != null) {
 			ctx.drawTextWithShadow(
-					s.textRenderer(),
-					Text.literal("✎ " + s.editingProxy.getName()),
-					lx, s.ly() - 1, 0xFF88CCFF
+				s.textRenderer(),
+				Text.literal("✎ " + s.editingProxy.getName()),
+				lx, s.ly() - 1, 0xFF77BBEE
 			);
 		}
 

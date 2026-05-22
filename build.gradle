@@ -1,5 +1,5 @@
 plugins {
-	id "fabric-loom" version "1.16-SNAPSHOT"
+	id "fabric-loom" version "${loom_version}"
 }
 
 base {
@@ -11,14 +11,10 @@ loom {
 	accessWidenerPath = file("src/main/resources/duollectis.accesswidener")
 }
 
-repositories {
-
-}
-
 // --- Компиляция APT-процессора до основного кода ---
 
-def processorClassesDir = file("$buildDir/processor/classes")
-def processorJarPath = file("$buildDir/processor/processor.jar")
+def processorClassesDir = file("${layout.buildDirectory.get()}/processor/classes")
+def processorJarFile = file("${layout.buildDirectory.get()}/processor/processor.jar")
 
 tasks.register('compileProcessor', JavaCompile) {
 	source = fileTree("src/main/java/org/duollectis/client/api/modules") {
@@ -36,11 +32,16 @@ tasks.register('packageProcessor', Jar) {
 	from("src/main/resources/META-INF/services") {
 		into "META-INF/services"
 	}
-	destinationDirectory = file("$buildDir/processor")
+	destinationDirectory = processorJarFile.parentFile
 	archiveFileName = "processor.jar"
 }
 
 // --- Конец блока APT ---
+
+tasks.register('copyDependencies', Copy) {
+	from configurations.runtimeClasspath
+	into "${layout.buildDirectory.get()}/dependencies"
+}
 
 dependencies {
 	// To change the versions see the gradle.properties file
@@ -50,18 +51,20 @@ dependencies {
 	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
 	modImplementation 'io.netty:netty-handler-proxy:4.2.7.Final'
 
-	// Fabric API. This is technically optional, but you probably want it anyway.
-	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+	modImplementation fileTree(dir: "libs", include: ["*.jar"])
 
-	modImplementation fileTree("libs")
+	// Lombok: compileOnly для компилятора (видит аннотации), annotationProcessor для AP
+	compileOnly "org.projectlombok:lombok:${project.lombok_version}"
+	annotationProcessor "org.projectlombok:lombok:${project.lombok_version}"
 
-	compileOnly 'org.projectlombok:lombok:1.18.30'
-	annotationProcessor 'org.projectlombok:lombok:1.18.30'
-	annotationProcessor files(processorJarPath)
+	// APT-процессор модулей: подключается как annotationProcessor после сборки JAR
+	annotationProcessor files(processorJarFile)
 }
 
-tasks.named("compileJava") {
-	dependsOn packageProcessor
+afterEvaluate {
+	tasks.named("compileJava") {
+		dependsOn packageProcessor
+	}
 }
 
 processResources {

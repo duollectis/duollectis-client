@@ -1,6 +1,7 @@
 package org.duollectis.client.utils.network;
 
-import net.minecraft.client.MinecraftClient;
+import lombok.Getter;
+import lombok.Setter;
 import net.minecraft.client.network.ClientPlayNetworkHandler;
 import net.minecraft.network.listener.ServerPlayPacketListener;
 import net.minecraft.network.packet.Packet;
@@ -14,83 +15,102 @@ import net.minecraft.util.math.Direction;
 
 import java.util.function.Function;
 
-public class PacketUtil {
+import static org.duollectis.client.utils.MC.mc;
 
-    private static ClientPlayNetworkHandler playNetworkHandler;
+/** Утилиты для отправки игровых пакетов на сервер без прямого доступа к сетевому обработчику. */
+public final class PacketUtil {
 
-    public static ClientPlayNetworkHandler getPlayNetworkHandler() {
-        return playNetworkHandler;
-    }
+	@Setter
+	@Getter
+	private static ClientPlayNetworkHandler playNetworkHandler;
 
-    public static void setPlayNetworkHandler(ClientPlayNetworkHandler handler) {
-        playNetworkHandler = handler;
-    }
+	private PacketUtil() {}
 
-    public static void breakAction(BlockPos pos, Direction direction, PlayerActionC2SPacket.Action action) {
-        if (pos == null) {
-            return;
-        }
+	/**
+	 * Отправляет действие с блоком (копание, отмена) и анимацию взмаха рукой.
+	 *
+	 * @param pos       позиция блока; если {@code null}, вызов игнорируется
+	 * @param direction сторона блока; если {@code null}, используется {@link Direction#DOWN}
+	 * @param action    тип действия (START_DESTROY_BLOCK, ABORT_DESTROY_BLOCK и т.д.)
+	 */
+	public static void breakAction(BlockPos pos, Direction direction, PlayerActionC2SPacket.Action action) {
+		if (pos == null) {
+			return;
+		}
 
-        Direction resolvedDirection = direction != null ? direction : Direction.DOWN;
-        sendSequencedPacket(s -> new PlayerActionC2SPacket(action, pos, resolvedDirection, s));
-        swingHand(Hand.MAIN_HAND);
-    }
+		Direction resolvedDirection = direction != null ? direction : Direction.DOWN;
+		sendSequencedPacket(s -> new PlayerActionC2SPacket(action, pos, resolvedDirection, s));
+		swingHand(Hand.MAIN_HAND);
+	}
 
-    public static void swingHand(Hand hand) {
-        sendPacket(new HandSwingC2SPacket(hand));
-    }
+	public static void swingHand(Hand hand) {
+		sendPacket(new HandSwingC2SPacket(hand));
+	}
 
-    public static void rotate(double yaw, double pitch) {
-        rotate(yaw, pitch, MinecraftClient.getInstance().player.isOnGround());
-    }
+	public static void rotate(double yaw, double pitch) {
+		rotate(yaw, pitch, mc.player.isOnGround());
+	}
 
-    public static void rotate(double yaw, double pitch, boolean onGround) {
-        if (yaw == -1 || pitch == -1) {
-            return;
-        }
+	/**
+	 * Отправляет пакет поворота игрока с явным указанием состояния на земле.
+	 * Значения {@code -1} для yaw или pitch пропускают отправку.
+	 *
+	 * @param yaw      горизонтальный угол в градусах
+	 * @param pitch    вертикальный угол в градусах
+	 * @param onGround находится ли игрок на земле
+	 */
+	public static void rotate(double yaw, double pitch, boolean onGround) {
+		if (yaw == -1 || pitch == -1) {
+			return;
+		}
 
-        sendPacket(new PlayerMoveC2SPacket.LookAndOnGround(
-                (float) yaw,
-                (float) pitch,
-                onGround,
-                MinecraftClient.getInstance().player.horizontalCollision
-        ));
-    }
+		sendPacket(new PlayerMoveC2SPacket.LookAndOnGround(
+			(float) yaw,
+			(float) pitch,
+			onGround,
+			mc.player.horizontalCollision
+		));
+	}
 
-    public static void useItem(Hand hand) {
-        sendSequencedPacket(s -> new PlayerInteractItemC2SPacket(
-                hand,
-                s,
-                MinecraftClient.getInstance().player.getYaw(),
-                MinecraftClient.getInstance().player.getPitch()
-        ));
-    }
+	public static void useItem(Hand hand) {
+		sendSequencedPacket(s -> new PlayerInteractItemC2SPacket(
+			hand,
+			s,
+			mc.player.getYaw(),
+			mc.player.getPitch()
+		));
+	}
 
-    public static void stopUsingItem() {
-        sendSequencedPacket(s -> new PlayerActionC2SPacket(
-                PlayerActionC2SPacket.Action.RELEASE_USE_ITEM,
-                BlockPos.ORIGIN,
-                Direction.DOWN
-        ));
-    }
+	public static void stopUsingItem() {
+		sendSequencedPacket(s -> new PlayerActionC2SPacket(
+			PlayerActionC2SPacket.Action.RELEASE_USE_ITEM,
+			BlockPos.ORIGIN,
+			Direction.DOWN
+		));
+	}
 
-    public static void sendSequencedPacket(Function<Integer, Packet<ServerPlayPacketListener>> packetFunction) {
-        if (MinecraftClient.getInstance().interactionManager == null
-                || MinecraftClient.getInstance().world == null) {
-            return;
-        }
+	/**
+	 * Отправляет пакет с sequence-номером через {@code interactionManager}.
+	 * Sequence необходим для синхронизации инвентаря с сервером.
+	 *
+	 * @param packetFunction фабрика пакета, принимающая sequence-номер
+	 */
+	public static void sendSequencedPacket(Function<Integer, Packet<ServerPlayPacketListener>> packetFunction) {
+		if (mc.interactionManager == null || mc.world == null) {
+			return;
+		}
 
-        MinecraftClient.getInstance().interactionManager.sendSequencedPacket(
-                MinecraftClient.getInstance().world,
-                packetFunction::apply
-        );
-    }
+		mc.interactionManager.sendSequencedPacket(
+			mc.world,
+			packetFunction::apply
+		);
+	}
 
-    public static void sendPacket(Packet<?> packet) {
-        if (packet == null || playNetworkHandler == null) {
-            return;
-        }
+	public static void sendPacket(Packet<?> packet) {
+		if (packet == null || playNetworkHandler == null) {
+			return;
+		}
 
-        playNetworkHandler.sendPacket(packet);
-    }
+		playNetworkHandler.sendPacket(packet);
+	}
 }

@@ -39,3 +39,4 @@ replay_*.log
 *.hprof
 *.jfr
 /minecraft-1_21_11-decompiled/
+/scripts
