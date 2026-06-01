@@ -4,22 +4,20 @@ import com.google.gson.JsonObject;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import net.minecraft.client.util.InputUtil;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.text.Style;
 import net.minecraft.text.Text;
-import org.duollectis.client.api.event.Event;
+import org.duollectis.client.api.ILoggable;
+import org.duollectis.client.api.bind.BindManager;
 import org.duollectis.client.api.event.EventBus;
+import org.duollectis.client.api.event.ListenerEntry;
 import org.duollectis.client.api.event.Subscribe;
 import org.duollectis.client.api.settings.Settings;
 import org.duollectis.client.utils.ISerializable;
 import org.duollectis.client.utils.ITranslatable;
 
-import static org.duollectis.client.utils.MC.mc;
-
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Consumer;
 
 /**
  * Базовый класс для всех модулей клиента.
@@ -28,10 +26,11 @@ import java.util.function.Consumer;
  * Реализует {@link ISerializable} для сохранения состояния и {@link ITranslatable} для локализации.
  */
 @Slf4j
-public class Module implements ISerializable, ITranslatable {
+public class Module extends ControllerNode implements ISerializable, ITranslatable, ILoggable {
+
+	protected static final MinecraftClient mc = MinecraftClient.getInstance();
 
 	private static final String TRANSLATION_PATH = "duollectis.client.modules.";
-	private static final int NO_BIND = -1;
 
 	private final List<ListenerEntry<?>> registeredListeners = new ArrayList<>();
 
@@ -45,14 +44,18 @@ public class Module implements ISerializable, ITranslatable {
 	@Setter
 	private String id;
 
-	@Getter
-	@Setter
-	private int keyCode = NO_BIND;
-
 	protected boolean debug;
 
 	public Module() {
-		scanSubscribeMethods();
+		registeredListeners.addAll(collectAllListeners());
+	}
+
+	protected void onInit() {}
+
+	@SuppressWarnings("unchecked")
+	protected <M extends Module, C extends Controller<M>> void addController(C controller) {
+		addController((M) this, controller);
+		registeredListeners.addAll(controller.collectAllListeners());
 	}
 
 	@Override
@@ -65,14 +68,16 @@ public class Module implements ISerializable, ITranslatable {
 		return TRANSLATION_PATH + id;
 	}
 
-	/** Переключает состояние модуля (включён ↔ выключен). */
+	/**
+	 * Переключает состояние модуля (включён ↔ выключен).
+	 */
 	public void toggle() {
 		if (active) {
 			disable();
-			return;
 		}
-
-		enable();
+		else {
+			enable();
+		}
 	}
 
 	/**
@@ -89,34 +94,34 @@ public class Module implements ISerializable, ITranslatable {
 		disable();
 	}
 
-	/** Включает модуль: подписывает обработчики событий и вызывает {@link #onActivate()}. */
+	/**
+	 * Включает модуль: подписывает обработчики событий и вызывает {@link #onActivate()},
+	 * затем каскадно активирует все дочерние контроллеры.
+	 */
+	@Override
 	public void enable() {
 		if (active) {
 			return;
 		}
 
 		active = true;
-		onActivate();
+		super.enable();
 		subscribeAll();
 		info("Activated");
 	}
 
-	/** Выключает модуль: отписывает обработчики событий и вызывает {@link #onDeactivate()}. */
+	/**
+	 * Выключает модуль: отписывает обработчики событий и вызывает {@link #onDeactivate()},
+	 * затем каскадно деактивирует все дочерние контроллеры.
+	 */
+	@Override
 	public void disable() {
 		if (active) {
 			active = false;
 			unsubscribeAll();
-			onDeactivate();
+			super.disable();
 			info("Deactivated");
 		}
-	}
-
-	protected void onActivate() {}
-
-	protected void onDeactivate() {}
-
-	protected <T extends Event> void on(Class<T> eventType, Consumer<T> listener) {
-		registeredListeners.add(new ListenerEntry<>(eventType, listener));
 	}
 
 	private void subscribeAll() {
@@ -135,58 +140,19 @@ public class Module implements ISerializable, ITranslatable {
 		}
 	}
 
-	/**
-	 * Сканирует иерархию классов через рефлексию и регистрирует все методы,
-	 * помеченные {@link Subscribe}, как обработчики событий.
-	 * Тип события определяется по единственному параметру метода.
-	 */
-	@SuppressWarnings({"unchecked", "rawtypes"})
-	private void scanSubscribeMethods() {
-		Class<?> clazz = getClass();
+	@Override
+	public void info(Object arg) {
+		addMessage(getName(), arg, 0x60FF60);
+	}
 
-		while (clazz != null && clazz != Object.class) {
-			for (Method method : clazz.getDeclaredMethods()) {
-				if (method.getAnnotation(Subscribe.class) == null) {
-					continue;
-				}
+	@Override
+	public void warning(Object arg) {
+		addMessage(getTranslationPath(), arg, 0xFFFF60);
+	}
 
-				if (method.getParameterCount() != 1) {
-					log.warn(
-						"Метод @Subscribe '{}' в '{}' должен иметь ровно один параметр — тип события",
-						method.getName(), getClass().getSimpleName()
-					);
-					continue;
-				}
-
-				Class<?> paramType = method.getParameterTypes()[0];
-
-				if (!Event.class.isAssignableFrom(paramType)) {
-					log.warn(
-						"Параметр метода @Subscribe '{}' в '{}' должен реализовывать Event",
-						method.getName(), getClass().getSimpleName()
-					);
-					continue;
-				}
-
-				method.setAccessible(true);
-
-				Consumer<Event> listener = event -> {
-					try {
-						method.invoke(this, event);
-					}
-					catch (Exception e) {
-						log.error(
-							"Ошибка в @Subscribe методе '{}' модуля '{}'",
-							method.getName(), getClass().getSimpleName(), e
-						);
-					}
-				};
-
-				registeredListeners.add(new ListenerEntry<>((Class) paramType, listener));
-			}
-
-			clazz = clazz.getSuperclass();
-		}
+	@Override
+	public void error(Object arg) {
+		addMessage(getTranslationPath(), arg, 0xFF6060);
 	}
 
 	/**
@@ -194,6 +160,7 @@ public class Module implements ISerializable, ITranslatable {
 	 *
 	 * @param arg объект для отображения
 	 */
+	@Override
 	public void debugInfo(Object arg) {
 		if (debug) {
 			info(arg);
@@ -230,30 +197,24 @@ public class Module implements ISerializable, ITranslatable {
 		disable();
 	}
 
-	public void info(Object arg) {
-		addMessage(tr.get(getName()), arg, 0x60FF60);
-	}
-
-	public void warning(Object arg) {
-		addMessage(tr.get(getTranslationPath()), arg, 0xFFFF60);
-	}
-
-	public void error(Object arg) {
-		addMessage(tr.get(getTranslationPath()), arg, 0xFF6060);
-	}
-
 	/** Возвращает отображаемое имя назначенной клавиши или {@code null} если бинд не задан. */
 	public String getKeyName() {
-		if (keyCode == NO_BIND) {
-			return null;
-		}
+		return BindManager.getInstance().getModuleKeyName(id);
+	}
 
-		return InputUtil.Type.KEYSYM.createFromCode(keyCode).getLocalizedText().getString();
+	/** Возвращает keyCode GLFW назначенной клавиши или -1 если бинд не задан. */
+	public int getKeyCode() {
+		return BindManager.getInstance().getModuleKey(id);
+	}
+
+	/** Устанавливает клавишу бинда. */
+	public void setKeyCode(int keyCode) {
+		BindManager.getInstance().setModuleKey(id, keyCode);
 	}
 
 	/** Сбрасывает назначенную клавишу. */
 	public void clearBind() {
-		keyCode = NO_BIND;
+		BindManager.getInstance().clearModuleKey(id);
 	}
 
 	@Override
@@ -264,7 +225,6 @@ public class Module implements ISerializable, ITranslatable {
 		settings.write(settingsTag);
 
 		json.addProperty("active", active);
-		json.addProperty("keyCode", keyCode);
 		json.add("settings", settingsTag);
 
 		return json;
@@ -274,10 +234,6 @@ public class Module implements ISerializable, ITranslatable {
 	public void fromJson(JsonObject json) {
 		if (json.has("settings")) {
 			settings.read(json.getAsJsonObject("settings"));
-		}
-
-		if (json.has("keyCode")) {
-			keyCode = json.get("keyCode").getAsInt();
 		}
 
 		boolean savedActive = json.has("active") && json.get("active").getAsBoolean();
@@ -293,22 +249,9 @@ public class Module implements ISerializable, ITranslatable {
 			return;
 		}
 
-		mc.inGameHud.getChatHud().addMessage(
+		mc.execute(() -> mc.inGameHud.getChatHud().addMessage(
 				Text.literal("[%s] %s".formatted(name, arg))
 				    .setStyle(Style.EMPTY.withColor(color))
-		);
+		));
 	}
-
-	private record ListenerEntry<T extends Event>(Class<T> eventType, Consumer<T> listener) {
-
-		void subscribe(EventBus bus) {
-			bus.subscribe(eventType, listener);
-		}
-
-		void unsubscribe(EventBus bus) {
-			bus.unsubscribe(eventType, listener);
-		}
-
-	}
-
 }

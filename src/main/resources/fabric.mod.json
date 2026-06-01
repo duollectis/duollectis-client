@@ -25,6 +25,10 @@
 		{
 			"config": "duollectis.mixins.json",
 			"environment": "client"
+		},
+		{
+			"config": "duollectis.sodium.mixins.json",
+			"environment": "client"
 		}
 	],
 	"depends": {

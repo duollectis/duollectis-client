@@ -7,9 +7,11 @@ import java.lang.annotation.Target;
 
 /**
  * Помечает метод как обработчик события шины {@link EventBus}.
- * Метод должен принимать ровно один параметр — тип конкретного события.
+ * Метод должен принимать один параметр — тип конкретного события, либо передать класс эвента в аннотацию.
  * {@link Module} автоматически регистрирует все такие методы при включении.
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)
-public @interface Subscribe {}
+public @interface Subscribe {
+	Class<? extends Event> value() default Event.class;
+}

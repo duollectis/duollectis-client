@@ -15,4 +15,8 @@ public abstract class CancellableEvent implements Event {
 		cancelled = true;
 	}
 
+	public void reset() {
+		cancelled = false;
+	}
+
 }

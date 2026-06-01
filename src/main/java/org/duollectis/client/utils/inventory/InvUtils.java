@@ -152,6 +152,17 @@ public final class InvUtils {
 		return ACTION;
 	}
 
+	/**
+	 * Меняет предмет в указанном слоте инвентаря с хотбар-слотом через {@link SlotActionType#SWAP}.
+	 * Эквивалентно нажатию клавиши F (или цифры хотбара) на слоте — без захвата курсором.
+	 * <p>
+	 * Использование: {@code InvUtils.swap().from(inventorySlot).toHotbar(hotbarSlot)}
+	 */
+	public static Action swap() {
+		ACTION.type = SlotActionType.SWAP;
+		return ACTION;
+	}
+
 	public static class Action {
 
 		private SlotActionType type = null;

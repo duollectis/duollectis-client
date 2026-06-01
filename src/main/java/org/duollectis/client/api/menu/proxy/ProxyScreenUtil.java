@@ -7,6 +7,7 @@ import net.minecraft.text.Text;
 
 import static org.duollectis.client.api.menu.proxy.ProxyScreenLayout.FIELD_H;
 import static org.duollectis.client.api.menu.proxy.ProxyScreenLayout.LABEL_H;
+import static org.duollectis.client.utils.MC.translations;
 
 /**
  * Вспомогательные методы экрана прокси: отрисовка рамок, заголовков секций,
@@ -14,20 +15,20 @@ import static org.duollectis.client.api.menu.proxy.ProxyScreenLayout.LABEL_H;
  */
 final class ProxyScreenUtil {
 
- static final int ENTRY_H = 22;
+	static final int ENTRY_H = 22;
 
- private ProxyScreenUtil() {}
+	private ProxyScreenUtil() {}
 
- static Text translatable(String key) {
-		return Text.translatable(key);
+	static Text translatable(String key) {
+		return Text.literal(translations().get(key));
 	}
 
 	static String translatableString(String key) {
-		return Text.translatable(key).getString();
+		return translations().get(key);
 	}
 
 	static String tsa(String key, Object... args) {
-		return String.format(Text.translatable(key).getString(), args);
+		return String.format(translations().get(key), args);
 	}
 
 	static void drawRect(DrawContext ctx, int x, int y, int w, int h, int color) {

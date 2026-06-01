@@ -17,6 +17,9 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket;
+import net.minecraft.network.packet.s2c.play.ScreenHandlerSlotUpdateS2CPacket;
+import net.minecraft.network.packet.s2c.play.SubtitleS2CPacket;
+import net.minecraft.network.packet.s2c.play.TitleS2CPacket;
 import net.minecraft.screen.ScreenHandlerType;
 import net.minecraft.screen.slot.Slot;
 import net.minecraft.screen.slot.SlotActionType;
@@ -27,6 +30,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
 import org.duollectis.client.api.event.Subscribe;
+import org.duollectis.client.api.event.events.PacketReceiveEvent;
 import org.duollectis.client.api.event.events.RenderEvent;
 import org.duollectis.client.api.event.events.TickPostEvent;
 import org.duollectis.client.api.event.events.TickPreEvent;
@@ -55,11 +59,7 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
-
-import static org.duollectis.client.utils.MC.mc;
 
 /**
  * Модуль автоматического дюпа предметов через зомби-механику.
@@ -80,8 +80,8 @@ public class ZombieDuper extends Module {
 	private static final float ATTACK_COOLDOWN_THRESHOLD = 1.0F;
 	private static final float ATTACK_COOLDOWN_PARTIAL = 0.5F;
 	private static final double DROP_ROTATION_PITCH = -20.0;
-	private static final double OFFSET_FAR = 0.7;
-	private static final double OFFSET_NEAR = 0.3;
+	private static final double OFFSET_NEAR = 0.55;
+	private static final double OFFSET_FAR = 0.3;
 	private static final ZoneId MOSCOW_ZONE = ZoneId.of("Europe/Moscow");
 
 	{
@@ -119,8 +119,8 @@ public class ZombieDuper extends Module {
 
 	private final Setting<Double> speed = settings.add(DoubleSetting
 			.create("speed")
-			.defaultValue(0.1)
-			.range(0.1, 1)
+			.defaultValue(0.02)
+			.range(0.001, 0.2)
 			.done()
 	);
 
@@ -197,25 +197,52 @@ public class ZombieDuper extends Module {
 					Items.ROTTEN_FLESH,
 					Items.CHICKEN,
 					Items.COOKED_CHICKEN,
-					Items.GOLDEN_BOOTS,
 					Items.IRON_SHOVEL,
 					Items.POTATO,
 					Items.BAKED_POTATO,
 					Items.IRON_INGOT,
 					Items.IRON_SWORD,
 					Items.GOLD_INGOT,
-					Items.GOLDEN_HELMET,
 					Items.CARROT,
 					Items.FEATHER,
+					Items.GUNPOWDER,
+					Items.GOLDEN_BOOTS,
+					Items.GOLDEN_HELMET,
 					Items.GOLDEN_CHESTPLATE,
-					Items.GUNPOWDER
-			))
+					Items.COPPER_HELMET,
+					Items.COPPER_CHESTPLATE,
+					Items.COPPER_LEGGINGS,
+					Items.COPPER_BOOTS,
+					Items.LEATHER_HELMET,
+					Items.LEATHER_CHESTPLATE,
+					Items.LEATHER_LEGGINGS,
+					Items.LEATHER_BOOTS,
+					Items.CHAINMAIL_HELMET,
+					Items.CHAINMAIL_CHESTPLATE,
+					Items.CHAINMAIL_LEGGINGS,
+					Items.CHAINMAIL_BOOTS
+					))
+			.done()
+	);
+
+	private final Setting<Double> lineWidth = settings.add(DoubleSetting
+			.create("line-width")
+			.defaultValue(4.0)
+			.range(0.5, 20.0)
+			.done()
+	);
+
+	private final Setting<Boolean> bloom = settings.add(BoolSetting
+			.create("bloom")
+			.defaultValue(false)
 			.done()
 	);
 
 	private final List<BlockPos> ignoredChests = new ArrayList<>();
 	private final List<BlockPos> ignoredNametagChests = new ArrayList<>();
 	private final Object2IntMap<Integer> cooldowns = new Object2IntOpenHashMap<>();
+	private final List<ItemStack> dupeTypePrototypes = new ArrayList<>();
+	private final List<Integer> dupeTypeCounts = new ArrayList<>();
 
 	private BlockPos zombiesPos;
 	private BlockPos chestPos;
@@ -233,7 +260,6 @@ public class ZombieDuper extends Module {
 	private int zombieCount;
 	private int zombieCountAll;
 
-
 	@Override
 	public void onDeactivate() {
 		zombiesPos = null;
@@ -241,6 +267,8 @@ public class ZombieDuper extends Module {
 		ignoredChests.clear();
 		ignoredNametagChests.clear();
 		cooldowns.clear();
+		dupeTypePrototypes.clear();
+		dupeTypeCounts.clear();
 
 		timer = 0;
 		openTimer = 0;
@@ -283,19 +311,25 @@ public class ZombieDuper extends Module {
 
 	@Subscribe
 	private void onRender(RenderEvent event) {
+		float width = lineWidth.get().floatValue();
+
 		if (zombiesPos != null) {
 			RenderUtils.drawLinesBox(
-					event.getModelView(),
+					event.getMatrices(),
 					zombiesPos,
-					Color.GREEN.a(200).getPacked()
+					Color.GREEN.a(200).getPacked(),
+					width,
+					true
 			);
 		}
 
 		if (chestPos != null) {
 			RenderUtils.drawLinesBox(
-					event.getModelView(),
+					event.getMatrices(),
 					chestPos,
-					Color.CYAN.a(200).getPacked()
+					Color.CYAN.a(200).getPacked(),
+					width,
+					true
 			);
 		}
 	}
@@ -327,42 +361,6 @@ public class ZombieDuper extends Module {
 			return;
 		}
 
-		Vec3d playerPos = mc.player.getEntityPos();
-		Vec3d offset = resolveMovementOffset(playerPos);
-
-		double targetX = offset.x != 0 ? (int) playerPos.x : playerPos.x;
-		double targetZ = offset.z != 0 ? (int) playerPos.z : playerPos.z;
-		targetX += offset.x;
-		targetZ += offset.z;
-
-		double moveSpeed = speed.get();
-		double diffX = targetX - playerPos.x;
-		double diffZ = targetZ - playerPos.z;
-
-		if (Math.abs(diffX) <= POSITION_SNAP_THRESHOLD && Math.abs(diffZ) <= POSITION_SNAP_THRESHOLD) {
-			debugInfo("Standing");
-			mc.player.setPosition(targetX, playerPos.y, targetZ);
-		}
-		else {
-			debugInfo("Moving");
-			mc.player.setPosition(
-					playerPos.x + Math.max(-moveSpeed, Math.min(moveSpeed, diffX)),
-					playerPos.y,
-					playerPos.z + Math.max(-moveSpeed, Math.min(moveSpeed, diffZ))
-			);
-		}
-
-		if (zombieCount > shulkerCount) {
-			dropShulkersToZombies();
-			return;
-		}
-
-		debugInfo("Renaming zombies");
-
-		if (tryRenameZombie(nametagResult)) {
-			return;
-		}
-
 		equipSword();
 
 		if (mc.player.getAttackCooldownProgress(ATTACK_COOLDOWN_PARTIAL) < ATTACK_COOLDOWN_THRESHOLD) {
@@ -375,6 +373,49 @@ public class ZombieDuper extends Module {
 		if (firingZombie != null) {
 			debugInfo("Attacking firing zombie");
 			mc.interactionManager.attackEntity(mc.player, firingZombie);
+			return;
+		}
+
+		int invShulkers = InvUtility.countShulkers();
+		boolean hasShulkersToGive = invShulkers > 0 || shulkerCount > 0;
+
+		if (zombieCount > shulkerCount && invShulkers > 0) {
+			dropShulkersToZombies();
+			return;
+		}
+
+		if (zombieCount > 0 && hasShulkersToGive) {
+			return;
+		}
+
+		if (zombieCount > 0) {
+			debugInfo("No shulkers to give, attacking zombies with shulkers");
+
+			for (Entity entity : mc.world.getEntities()) {
+				if (!(entity instanceof ZombieEntity zombie)) {
+					continue;
+				}
+
+				if (zombie.isDead() || !zombie.isAlive()) {
+					continue;
+				}
+
+				if (zombiesPos.getSquaredDistance(zombie.getEntityPos()) > ZOMBIE_NEAR_DIST_SQ) {
+					continue;
+				}
+
+				if (isShulker(zombie.getMainHandStack()) || isShulker(zombie.getOffHandStack())) {
+					mc.interactionManager.attackEntity(mc.player, zombie);
+					return;
+				}
+			}
+
+			return;
+		}
+
+		debugInfo("Renaming zombies");
+
+		if (tryRenameZombie(nametagResult)) {
 			return;
 		}
 
@@ -414,8 +455,6 @@ public class ZombieDuper extends Module {
 			return;
 		}
 
-		debugInfo("Dropping shulkers to zombies");
-
 		if (mc.player.currentScreenHandler != mc.player.playerScreenHandler) {
 			mc.player.closeHandledScreen();
 			return;
@@ -434,7 +473,6 @@ public class ZombieDuper extends Module {
 				continue;
 			}
 
-			debugInfo("Drop slot " + i + " type=" + targetType.getItem());
 			ScreenHandlerUtil.clickSlot(
 					mc.player.playerScreenHandler,
 					i,
@@ -447,12 +485,13 @@ public class ZombieDuper extends Module {
 	}
 
 	/**
-	 * Находит наименее представленный тип шалкера в инвентаре, сравнивая по содержимому.
-	 * Два шалкера одного цвета с разным содержимым считаются разными типами.
-	 * Группировка выполняется через {@link ItemStack#areItemsAndComponentsEqual}.
+	 * Находит тип шалкера с наименьшим накопленным счётчиком дюпов.
+	 * Если тип встречается впервые — его счётчик считается равным 0.
+	 * Гарантирует равномерный дюп всех типов шалкеров по содержимому.
 	 */
 	private ItemStack findRarestShulkerType() {
-		List<Map.Entry<ItemStack, Integer>> groups = new ArrayList<>();
+		ItemStack rarest = null;
+		int minCount = Integer.MAX_VALUE;
 
 		for (int i = 0; i < mc.player.playerScreenHandler.slots.size(); i++) {
 			ItemStack stack = mc.player.playerScreenHandler.getSlot(i).getStack();
@@ -461,33 +500,45 @@ public class ZombieDuper extends Module {
 				continue;
 			}
 
-			boolean found = false;
+			int count = getDupeCount(stack);
 
-			for (Map.Entry<ItemStack, Integer> entry : groups) {
-				if (ItemStack.areItemsAndComponentsEqual(entry.getKey(), stack)) {
-					entry.setValue(entry.getValue() + 1);
-					found = true;
-					break;
-				}
-			}
-
-			if (!found) {
-				groups.add(new java.util.AbstractMap.SimpleEntry<>(stack, 1));
+			if (count < minCount) {
+				minCount = count;
+				rarest = stack;
 			}
 		}
 
-		return groups.stream()
-				.min(Map.Entry.comparingByValue())
-				.map(Map.Entry::getKey)
-				.orElse(null);
+		return rarest;
+	}
+
+	private int getDupeCount(ItemStack prototype) {
+		for (int i = 0; i < dupeTypePrototypes.size(); i++) {
+			if (ItemStack.areItemsAndComponentsEqual(dupeTypePrototypes.get(i), prototype)) {
+				return dupeTypeCounts.get(i);
+			}
+		}
+
+		return 0;
+	}
+
+	private void incrementDupeCount(ItemStack prototype) {
+		for (int i = 0; i < dupeTypePrototypes.size(); i++) {
+			if (ItemStack.areItemsAndComponentsEqual(dupeTypePrototypes.get(i), prototype)) {
+				dupeTypeCounts.set(i, dupeTypeCounts.get(i) + 1);
+				return;
+			}
+		}
+
+		dupeTypePrototypes.add(prototype.copy());
+		dupeTypeCounts.add(1);
 	}
 
 	/**
 	 * Проверяет, является ли данный шалкер последним своего типа (по содержимому) в инвентаре.
 	 * Используется при стаковании: последний экземпляр каждого типа не складывается в сундук.
 	 *
-	 * @param prototype  эталонный стек шалкера для сравнения по содержимому
-	 * @param invOffset  смещение до начала слотов инвентаря игрока в currentScreenHandler
+	 * @param prototype эталонный стек шалкера для сравнения по содержимому
+	 * @param invOffset смещение до начала слотов инвентаря игрока в currentScreenHandler
 	 */
 	private boolean isLastOfType(ItemStack prototype, int invOffset) {
 		int count = 0;
@@ -697,59 +748,6 @@ public class ZombieDuper extends Module {
 		return null;
 	}
 
-	private boolean dropTrash() {
-		if (mc.player == null) {
-			return false;
-		}
-
-		debugInfo("Removing trash");
-
-		int remaining = dropPerTick.get();
-		boolean rotated = false;
-		List<Slot> slots = mc.player.playerScreenHandler.slots;
-
-		for (int i = 0; i < slots.size(); i++) {
-			ItemStack stack = slots.get(i).getStack();
-
-			if (!trashItems.get().contains(stack.getItem())) {
-				continue;
-			}
-
-			if (mc.player.currentScreenHandler != mc.player.playerScreenHandler) {
-				mc.player.closeHandledScreen();
-				return true;
-			}
-
-			debugInfo("Dropping slot " + i);
-
-			if (!rotated) {
-				PacketUtil.rotate(Rotations.getYaw(zombiesPos) - 180.0, DROP_ROTATION_PITCH);
-				rotated = true;
-			}
-
-			ScreenHandlerUtil.clickSlot(
-					mc.player.playerScreenHandler,
-					i,
-					1,
-					SlotActionType.THROW,
-					mc.player
-			);
-
-			remaining--;
-
-			if (remaining <= 0) {
-				PacketUtil.rotate(Rotations.getYaw(zombiesPos), Rotations.getPitch(zombiesPos));
-				return true;
-			}
-		}
-
-		if (rotated) {
-			PacketUtil.rotate(Rotations.getYaw(zombiesPos), Rotations.getPitch(zombiesPos));
-		}
-
-		return false;
-	}
-
 	private void findNametags() {
 		if (mc.player == null) {
 			return;
@@ -830,12 +828,81 @@ public class ZombieDuper extends Module {
 		closeChest();
 	}
 
+	private boolean dropTrash() {
+		if (mc.player == null) {
+			return false;
+		}
+
+		debugInfo("DROPPING TRASH");
+
+		int remaining = dropPerTick.get();
+		boolean rotated = false;
+		List<Slot> slots = mc.player.playerScreenHandler.slots;
+		List<Item> trash = trashItems.get();
+
+		for (int i = 0; i < slots.size(); i++) {
+			ItemStack stack = slots.get(i).getStack();
+
+			if (!trash.contains(stack.getItem())) {
+				continue;
+			}
+
+			if (mc.player.currentScreenHandler != mc.player.playerScreenHandler) {
+				mc.player.closeHandledScreen();
+				return true;
+			}
+
+			if (!rotated) {
+				PacketUtil.rotate(Rotations.getYaw(zombiesPos) - 180.0, DROP_ROTATION_PITCH);
+				rotated = true;
+			}
+
+			ScreenHandlerUtil.clickSlot(
+					mc.player.playerScreenHandler,
+					i,
+					1,
+					SlotActionType.THROW,
+					mc.player
+			);
+
+			remaining--;
+
+			if (remaining <= 0) {
+				PacketUtil.rotate(Rotations.getYaw(zombiesPos), Rotations.getPitch(zombiesPos));
+				return true;
+			}
+		}
+
+		if (rotated) {
+			PacketUtil.rotate(Rotations.getYaw(zombiesPos), Rotations.getPitch(zombiesPos));
+		}
+
+		return false;
+	}
+
 	private void stack() {
 		if (mc.player == null) {
 			return;
 		}
 
-		if (!isContainerScreenOpen() && dropTrash()) {
+		boolean containerOpen = isContainerScreenOpen();
+
+		if (!containerOpen && dropTrash()) {
+			return;
+		}
+
+		int shulkers = InvUtility.countShulkers();
+
+		debugInfo("stack() shulkers=" + shulkers + "/" + minShulkers.get()
+				+ " containerOpen=" + isContainerScreenOpen()
+				+ " openedChest=" + openedChest
+				+ " chestsRefreshTimer=" + chestsRefreshTimer
+				+ " openTimer=" + openTimer
+		);
+
+		if (shulkers <= minShulkers.get()) {
+			closeChest();
+			stacking = false;
 			return;
 		}
 
@@ -843,7 +910,7 @@ public class ZombieDuper extends Module {
 			return;
 		}
 
-		if (openedChest && !isContainerScreenOpen()) {
+		if (openedChest && !containerOpen) {
 			if (openTimer <= 0) {
 				if (chestPos == null) {
 					openedChest = false;
@@ -856,64 +923,63 @@ public class ZombieDuper extends Module {
 			return;
 		}
 
-		if (InvUtility.countShulkers() > minShulkers.get()) {
-			int offset = mc.player.currentScreenHandler.slots.size() - 36;
+		int offset = mc.player.currentScreenHandler.slots.size() - 36;
 
-			for (int i = offset; i < offset + 36; i++) {
-				ItemStack stack = mc.player.currentScreenHandler.getSlot(i).getStack();
+		for (int i = offset; i < offset + 36; i++) {
+			ItemStack stack = mc.player.currentScreenHandler.getSlot(i).getStack();
 
-				if (!isShulker(stack)) {
-					continue;
-				}
+			if (!isShulker(stack)) {
+				continue;
+			}
 
-				// Не складываем последний экземпляр данного типа шалкера — он нужен для дюпа
-				if (isLastOfType(stack, offset)) {
-					continue;
-				}
+			// Не складываем последний экземпляр данного типа шалкера — он нужен для дюпа
+			if (isLastOfType(stack, offset)) {
+				continue;
+			}
 
-				MiscUtil.iterateStrict(
-						chestsRange.get(), (x, y, z) -> {
-							BlockPos pos = mc.player.getBlockPos().add(x, y, z);
+			MiscUtil.iterateStrict(
+					chestsRange.get(), (x, y, z) -> {
+						BlockPos pos = mc.player.getBlockPos().add(x, y, z);
 
-							if (getBlock(pos) == Blocks.CHEST
-									&& !ignoredChests.contains(pos)
-									&& !openedChest) {
-								chestPos = pos;
-								ensureContainerOpen(pos);
-								return true;
-							}
-
-							return false;
+						if (getBlock(pos) == Blocks.CHEST
+								&& !ignoredChests.contains(pos)
+								&& !openedChest) {
+							chestPos = pos;
+							ensureContainerOpen(pos);
+							return true;
 						}
-				);
 
-				if (openedChest) {
-					if (!ensureContainerOpen(chestPos)) {
-						return;
+						return false;
 					}
-				} else {
-					chestsRefreshTimer = refreshDelay.get();
-					ignoredChests.clear();
-					warning("No empty chests found, waiting...");
+			);
+
+			if (openedChest) {
+				if (!ensureContainerOpen(chestPos)) {
 					return;
 				}
-
-				if (isChestFull()) {
-					ignoredChests.add(chestPos);
-					closeChest();
-					return;
-				}
-
-				ScreenHandlerUtil.clickSlot(
-						mc.player.currentScreenHandler,
-						i,
-						0,
-						SlotActionType.QUICK_MOVE,
-						mc.player
-				);
-
+			}
+			else {
+				chestsRefreshTimer = refreshDelay.get();
+				ignoredChests.clear();
+				warning("No empty chests found, waiting...");
 				return;
 			}
+
+			if (isChestFull()) {
+				ignoredChests.add(chestPos);
+				closeChest();
+				return;
+			}
+
+			ScreenHandlerUtil.clickSlot(
+					mc.player.currentScreenHandler,
+					i,
+					0,
+					SlotActionType.QUICK_MOVE,
+					mc.player
+			);
+
+			return;
 		}
 
 		closeChest();
@@ -1031,33 +1097,78 @@ public class ZombieDuper extends Module {
 	}
 
 	@Subscribe
+	private void onPacketReceive(PacketReceiveEvent event) {
+		if (mc.player == null) {
+			return;
+		}
+
+		if (event.getPacket() instanceof TitleS2CPacket || event.getPacket() instanceof SubtitleS2CPacket) {
+			disconnectFromServer("Title/subtitle detected!");
+			return;
+		}
+
+		if (!(event.getPacket() instanceof ScreenHandlerSlotUpdateS2CPacket packet)) {
+			return;
+		}
+
+		if (packet.getSyncId() != mc.player.playerScreenHandler.syncId) {
+			return;
+		}
+
+		ItemStack stack = packet.getStack();
+
+		if (!isShulker(stack)) {
+			return;
+		}
+
+		ItemStack previous = mc.player.playerScreenHandler.getSlot(packet.getSlot()).getStack();
+
+		if (!previous.isEmpty()) {
+			return;
+		}
+
+		incrementDupeCount(stack);
+	}
+
+	@Subscribe
 	private void onTickPre(TickPreEvent event) {
 		if (mc.player == null || mc.world == null) {
 			return;
 		}
 
 		if (disableOnSaturdayOver.get() && !isSaturdayInMoscow()) {
-			infoDisable("Saturday is over! Disabling!");
-
-			AutoReconnect autoReconnect = ModuleManager.getInstance().get(AutoReconnect.class);
-			autoReconnect.disable();
-
-			if (mc.getNetworkHandler() != null) {
-				mc.getNetworkHandler().getConnection().disconnect(Text.literal("Saturday is done!"));
-			}
-
-			mc.setScreen(new DisconnectedScreen(
-					mc.currentScreen,
-					Text.literal("Saturday is done!"),
-					Text.literal("Dupe ended.")
-			));
-
+			disconnectFromServer("Saturday is over! Disabling!");
 			return;
 		}
 
 		if (zombiesPos == null) {
 			activate();
 			return;
+		}
+
+		Vec3d playerPos = mc.player.getEntityPos();
+		Vec3d offset = resolveMovementOffset(playerPos);
+
+		double targetX = offset.x != 0 ? (int) playerPos.x : playerPos.x;
+		double targetZ = offset.z != 0 ? (int) playerPos.z : playerPos.z;
+		targetX += offset.x;
+		targetZ += offset.z;
+
+		double diffX = targetX - playerPos.x;
+		double diffZ = targetZ - playerPos.z;
+
+		if (Math.abs(diffX) <= POSITION_SNAP_THRESHOLD && Math.abs(diffZ) <= POSITION_SNAP_THRESHOLD) {
+//			debugInfo("Standing");
+			mc.player.setPosition(targetX, playerPos.y, targetZ);
+		}
+		else {
+			double moveSpeed = speed.get();
+//			debugInfo("Moving");
+			mc.player.setPosition(
+					playerPos.x + Math.max(-moveSpeed, Math.min(moveSpeed, diffX)),
+					playerPos.y,
+					playerPos.z + Math.max(-moveSpeed, Math.min(moveSpeed, diffZ))
+			);
 		}
 
 		if (timer > 0) {
@@ -1074,13 +1185,22 @@ public class ZombieDuper extends Module {
 			return;
 		}
 
-		if (zombieCountAll <= 0 && (stacking || InvUtility.countFullSlots() >= maxFullSlots.get())) {
-			debugInfo("Stack tick");
+		int fullSlots = InvUtility.countFullSlots();
+		int shulkers = InvUtility.countShulkers();
+
+		debugInfo("tick zombieAll=" + zombieCountAll
+				+ " zombieEmpty=" + zombieCount
+				+ " shulkerGround=" + shulkerCount
+				+ " fullSlots=" + fullSlots + "/" + maxFullSlots.get()
+				+ " shulkersInv=" + shulkers + "/" + minShulkers.get()
+				+ " stacking=" + stacking
+		);
+
+		if (stacking || fullSlots >= maxFullSlots.get()) {
 			stacking = true;
 			stack();
 		}
 		else {
-			debugInfo("Dupe tick");
 			openedChest = false;
 			chestPos = null;
 			stacking = false;
@@ -1111,6 +1231,23 @@ public class ZombieDuper extends Module {
 		}
 	}
 
+	private void disconnectFromServer(String reason) {
+		infoDisable(reason);
+
+		AutoReconnect autoReconnect = ModuleManager.getInstance().get(AutoReconnect.class);
+		autoReconnect.disable();
+
+		if (mc.getNetworkHandler() != null) {
+			mc.getNetworkHandler().getConnection().disconnect(Text.literal(reason));
+		}
+
+		mc.setScreen(new DisconnectedScreen(
+				null,
+				Text.literal(reason),
+				Text.literal("")
+		));
+	}
+
 	private static boolean isShulker(ItemStack stack) {
 		if (stack == null) {
 			return false;
@@ -1139,35 +1276,35 @@ public class ZombieDuper extends Module {
 
 		if (pos.x >= 0) {
 			if (RotationUtil.isEast(flags)) {
-				x = OFFSET_FAR;
+				x = OFFSET_NEAR;
 			}
 			else if (RotationUtil.isWest(flags)) {
-				x = OFFSET_NEAR;
+				x = OFFSET_FAR;
 			}
 		}
 		else {
 			if (RotationUtil.isEast(flags)) {
-				x = -OFFSET_NEAR;
+				x = -OFFSET_FAR;
 			}
 			else if (RotationUtil.isWest(flags)) {
-				x = -OFFSET_FAR;
+				x = -OFFSET_NEAR;
 			}
 		}
 
 		if (pos.z >= 0) {
 			if (RotationUtil.isSouth(flags)) {
-				z = OFFSET_FAR;
+				z = OFFSET_NEAR;
 			}
 			else if (RotationUtil.isNorth(flags)) {
-				z = OFFSET_NEAR;
+				z = OFFSET_FAR;
 			}
 		}
 		else {
 			if (RotationUtil.isSouth(flags)) {
-				z = -OFFSET_NEAR;
+				z = -OFFSET_FAR;
 			}
 			else if (RotationUtil.isNorth(flags)) {
-				z = -OFFSET_FAR;
+				z = -OFFSET_NEAR;
 			}
 		}
 

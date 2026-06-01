@@ -49,6 +49,8 @@ public abstract class ClientConnectionMixin {
 			return;
 		}
 
+		System.out.println("PROXY: " + proxy);
+
 		switch (proxy.getType()) {
 			case SOCKS4 -> pipeline.addFirst(new Socks4ProxyHandler(
 					new InetSocketAddress(proxy.getAddress(), proxy.getPort()),

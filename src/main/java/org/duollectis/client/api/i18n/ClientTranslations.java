@@ -35,7 +35,8 @@ public final class ClientTranslations {
 	 * @return локализованная строка, или сам {@code key} если перевод не найден
 	 */
 	public String get(String key) {
-		return translations.getOrDefault(key, key);
+		int index = key.lastIndexOf('.');
+		return translations.getOrDefault(key, index == -1 ? key : key.substring(index));
 	}
 
 	public String get(String key, String defaultsValue) {

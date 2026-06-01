@@ -10,7 +10,7 @@ import org.duollectis.client.utils.INamed;
 
 import java.util.function.Consumer;
 
-import static org.duollectis.client.api.menu.modules.ModulesScreenLayout.drawBorder;
+import static org.duollectis.client.api.menu.main.ClientScreenLayout.drawBorder;
 
 /**
  * Выпадающий список для выбора значения перечисления. Поддерживает интерфейс

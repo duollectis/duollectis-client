@@ -5,7 +5,6 @@ import com.google.gson.reflect.TypeToken;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import net.fabricmc.loader.api.FabricLoader;
 
 import java.io.File;
 import java.io.FileReader;
@@ -13,6 +12,8 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.*;
+
+import static org.duollectis.client.utils.MC.gameDirFile;
 
 /**
  * Менеджер прокси-серверов: хранит список, управляет активным прокси,
@@ -23,13 +24,7 @@ import java.util.*;
 public class ProxyManager {
 
 	@Getter
-	private static ProxyManager instance;
-
-	private final Set<Proxy> proxiesSet = new LinkedHashSet<>();
-
-	@Setter
-	@Getter
-	private Proxy activeProxy;
+	private static final ProxyManager instance = new ProxyManager();
 
 	private static final Gson PROXY_GSON = new GsonBuilder()
 			.setPrettyPrinting()
@@ -40,12 +35,27 @@ public class ProxyManager {
 
 	private static final Type PROXY_LIST_TYPE = new TypeToken<List<Proxy>>() {}.getType();
 
-	public ProxyManager() {
-		instance = this;
+	private final Set<Proxy> proxiesSet = new LinkedHashSet<>();
+
+	@Setter
+	@Getter
+	private Proxy activeProxy;
+
+	private boolean init;
+
+	private ProxyManager() {}
+
+	public void init() {
+		if (init) {
+			throw new RuntimeException("Double initialization!");
+		}
 		load();
+		init = true;
 	}
 
-	/** @return снимок списка всех прокси в порядке добавления */
+	/**
+	 * @return снимок списка всех прокси в порядке добавления
+	 */
 	public List<Proxy> getProxies() {
 		return new ArrayList<>(proxiesSet);
 	}
@@ -65,14 +75,17 @@ public class ProxyManager {
 		proxiesSet.remove(proxy);
 	}
 
-	/** Сохраняет текущий список прокси на диск в формате JSON. */
+	/**
+	 * Сохраняет текущий список прокси на диск в формате JSON.
+	 */
 	public void save() {
 		File file = proxyFile();
 		file.getParentFile().mkdirs();
 
 		try (FileWriter writer = new FileWriter(file)) {
 			PROXY_GSON.toJson(new ArrayList<>(proxiesSet), PROXY_LIST_TYPE, writer);
-		} catch (IOException e) {
+		}
+		catch (IOException e) {
 			log.error("Не удалось сохранить список прокси", e);
 		}
 	}
@@ -80,7 +93,7 @@ public class ProxyManager {
 	private void load() {
 		File file = proxyFile();
 
-		if (file.exists() == false) {
+		if (!file.exists()) {
 			return;
 		}
 
@@ -95,13 +108,14 @@ public class ProxyManager {
 				proxy.initRuntimeFields();
 				proxiesSet.add(proxy);
 			}
-		} catch (IOException e) {
+		}
+		catch (IOException e) {
 			log.error("Не удалось загрузить список прокси", e);
 		}
 	}
 
 	private static File proxyFile() {
-		return new File(FabricLoader.getInstance().getGameDir().toFile(), "duollectis/proxies.json");
+		return new File(gameDirFile(), "duollectis/proxies.json");
 	}
 
 	private static final class ProxyTypeAdapter
@@ -114,13 +128,15 @@ public class ProxyManager {
 
 		@Override
 		public Proxy.Type deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext ctx)
-				throws JsonParseException {
+		throws JsonParseException {
 			if (json == null || json.isJsonNull()) {
 				return null;
 			}
+
 			try {
 				return Proxy.Type.valueOf(json.getAsString());
-			} catch (IllegalArgumentException e) {
+			}
+			catch (IllegalArgumentException e) {
 				return null;
 			}
 		}
@@ -134,16 +150,18 @@ public class ProxyManager {
 			if (src == null || src.isEmpty()) {
 				return new JsonArray();
 			}
+
 			JsonArray array = new JsonArray();
 			for (Proxy.Type type : src) {
 				array.add(type.name());
 			}
+
 			return array;
 		}
 
 		@Override
 		public EnumSet<Proxy.Type> deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext ctx)
-				throws JsonParseException {
+		throws JsonParseException {
 			EnumSet<Proxy.Type> result = EnumSet.noneOf(Proxy.Type.class);
 			if (json == null || json.isJsonNull() || !json.isJsonArray()) {
 				return result;
@@ -151,7 +169,9 @@ public class ProxyManager {
 			for (JsonElement element : json.getAsJsonArray()) {
 				try {
 					result.add(Proxy.Type.valueOf(element.getAsString()));
-				} catch (IllegalArgumentException ignored) {}
+				}
+				catch (IllegalArgumentException ignored) {
+				}
 			}
 			return result;
 		}

@@ -8,7 +8,7 @@ import net.minecraft.text.Text;
 
 import java.util.function.Consumer;
 
-import static org.duollectis.client.api.menu.modules.ModulesScreenLayout.*;
+import static org.duollectis.client.api.menu.main.ClientScreenLayout.*;
 
 /**
  * Стилизованная кнопка-переключатель с двумя состояниями (вкл/выкл).

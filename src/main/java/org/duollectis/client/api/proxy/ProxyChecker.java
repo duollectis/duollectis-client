@@ -4,7 +4,6 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.annotations.Expose;
 import lombok.Getter;
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.network.packet.c2s.handshake.ConnectionIntent;
 
 import java.io.*;
@@ -21,6 +20,8 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import static org.duollectis.client.utils.MC.gameDirFile;
 
 /**
  * Асинхронный проверщик прокси-серверов.
@@ -140,10 +141,7 @@ public class ProxyChecker {
 	}
 
 	private static File settingsFile() {
-		return new File(
-				FabricLoader.getInstance().getGameDir().toFile(),
-				"duollectis/checker_settings.json"
-		);
+		return new File(gameDirFile(), "duollectis/checker_settings.json");
 	}
 
 	@Getter

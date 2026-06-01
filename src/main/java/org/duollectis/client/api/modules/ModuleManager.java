@@ -5,7 +5,9 @@ import com.google.gson.JsonParser;
 import it.unimi.dsi.fastutil.objects.Reference2ReferenceOpenHashMap;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import net.fabricmc.loader.api.FabricLoader;
+import org.duollectis.client.api.bind.BindManager;
+import org.duollectis.client.api.event.EventBus;
+import org.duollectis.client.api.event.events.GameCloseEvent;
 import org.duollectis.client.utils.JsonHelper;
 
 import java.io.*;
@@ -15,6 +17,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
+import static org.duollectis.client.utils.MC.gameDirFile;
+
 /**
  * Синглтон-менеджер всех модулей клиента.
  * Загружает классы модулей из реестра {@code META-INF/duollectis-modules},
@@ -23,17 +27,29 @@ import java.util.Map;
 @Slf4j
 public final class ModuleManager {
 
-	private static final String MODULE_REGISTRY = "META-INF/duollectis-modules";
-
 	@Getter
 	private static final ModuleManager instance = new ModuleManager();
+
+	private static final String MODULE_REGISTRY = "META-INF/duollectis-modules";
 
 	private final List<Module> modules = new ArrayList<>();
 	private final Map<Class<? extends Module>, Module> instanceMap = new Reference2ReferenceOpenHashMap<>();
 
-	private ModuleManager() {
+	private boolean init;
+
+	private ModuleManager() {}
+
+	public void init() {
+		if (init) {
+			throw new RuntimeException("Double initialization!");
+		}
+
+		EventBus.getInstance().subscribe(GameCloseEvent.class, event -> save());
 		loadModulesFromRegistry();
+		BindManager.getInstance().load();
 		load();
+
+		init = true;
 	}
 
 	/**
@@ -47,9 +63,13 @@ public final class ModuleManager {
 
 		modules.add(module);
 		instanceMap.put(module.getClass(), module);
+		BindManager.getInstance().registerModule(info.value(), module::toggle);
+		module.onInit();
 	}
 
-	/** Выключает все зарегистрированные модули. */
+	/**
+	 * Выключает все зарегистрированные модули.
+	 */
 	public void disableAll() {
 		modules.forEach(Module::disable);
 	}
@@ -59,23 +79,24 @@ public final class ModuleManager {
 	 * Файл располагается в директории {@code <minecraft>/duollectis/settings.json}.
 	 */
 	public void save() {
+		log.info("Сохранение модулей...");
 		File file = resolveConfigFile();
-		JsonObject root = new JsonObject();
 		JsonObject modulesTag = new JsonObject();
 
 		for (Module module : modules) {
 			modulesTag.add(module.getId(), module.toJson());
 		}
 
-		root.add("modules", modulesTag);
 		file.getParentFile().mkdirs();
 
 		try (FileWriter writer = new FileWriter(file)) {
-			JsonHelper.GSON.toJson(root, writer);
+			JsonHelper.GSON.toJson(modulesTag, writer);
 		}
 		catch (IOException e) {
 			log.error("Не удалось сохранить настройки модулей", e);
 		}
+
+		BindManager.getInstance().save();
 	}
 
 	/**
@@ -83,6 +104,7 @@ public final class ModuleManager {
 	 * Если конфиг отсутствует, модули остаются в состоянии по умолчанию.
 	 */
 	public void load() {
+		log.info("Загрузка модулей...");
 		File file = resolveConfigFile();
 
 		if (!file.exists()) {
@@ -90,22 +112,24 @@ public final class ModuleManager {
 		}
 
 		try (FileReader reader = new FileReader(file)) {
-			JsonObject root = JsonParser.parseReader(reader).getAsJsonObject();
-
-			if (!root.has("modules")) {
-				return;
-			}
+			JsonObject modulesTag = JsonParser.parseReader(reader).getAsJsonObject();
 
 			disableAll();
 
-			JsonObject modulesTag = root.getAsJsonObject("modules");
-
 			for (Module module : modules) {
-				if (!modulesTag.has(module.getId())) {
-					continue;
-				}
 
-				module.fromJson(modulesTag.getAsJsonObject(module.getId()));
+				if (modulesTag.has(module.getId())) {
+					try {
+						module.fromJson(modulesTag.getAsJsonObject(module.getId()));
+					}
+					catch (Exception e) {
+						log.error("Не удалось загрузить {}", module.getId());
+						log.error("", e);
+					}
+				}
+				else {
+					log.warn("Модуль не найден {}", module.getId());
+				}
 			}
 		}
 		catch (Exception e) {
@@ -188,8 +212,7 @@ public final class ModuleManager {
 	}
 
 	private static File resolveConfigFile() {
-		File minecraftDir = FabricLoader.getInstance().getGameDir().toFile();
-		return new File(minecraftDir, "duollectis/settings.json");
+		return new File(gameDirFile(), "duollectis/settings.json");
 	}
 
 }

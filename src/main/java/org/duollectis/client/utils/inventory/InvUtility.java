@@ -46,6 +46,18 @@ public final class InvUtility {
 		return true;
 	}
 
+	public static int countEmptySlots() {
+		int count = 0;
+
+		for (int i = 0; i < GENERIC_INV_SIZE; i++) {
+			if (mc.player.getInventory().getStack(i).isEmpty()) {
+				count++;
+			}
+		}
+
+		return count;
+	}
+
 	public static int countFullSlots() {
 		int count = 0;
 

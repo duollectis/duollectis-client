@@ -1,25 +1,116 @@
 {
-    "screen.duollectis.account_manager.title": "Account Manager",
-    "screen.duollectis.account_manager.list.title": "Accounts",
-    "screen.duollectis.account_manager.section.add": "Add Account",
-    "screen.duollectis.account_manager.field.nickname": "Nickname",
-    "screen.duollectis.account_manager.btn.add": "Add",
-    "screen.duollectis.account_manager.btn.remove": "Remove",
-    "screen.duollectis.account_manager.btn.switch": "Switch",
-    "screen.duollectis.account_manager.btn.sort_az": "Sort A→Z",
-    "screen.duollectis.account_manager.current": "Current nick: ",
-    "screen.duollectis.account_manager.msg.empty_name": "Enter a nickname",
-    "screen.duollectis.account_manager.msg.name_too_long": "Nickname too long (max 16)",
-    "screen.duollectis.account_manager.msg.already_exists": "Account already exists",
-    "screen.duollectis.account_manager.msg.added": "Account added",
-    "screen.duollectis.account_manager.msg.removed": "Account removed",
-    "screen.duollectis.account_manager.msg.none_selected": "No account selected",
-    "screen.duollectis.account_manager.msg.switched": "Switched to: ",
-    "screen.duollectis.account_manager.msg.sorted": "Group sorted",
+    "screen.duollectis.proxy_manager.title": "Proxy Manager",
+    "screen.duollectis.proxy_manager.list.raw": "Raw",
+    "screen.duollectis.proxy_manager.list.checked": "Checked",
+    "screen.duollectis.proxy_manager.section.add_proxy": "Add Proxy",
+    "screen.duollectis.proxy_manager.section.edit_proxy": "Edit Proxy",
+    "screen.duollectis.proxy_manager.section.checker": "Checker",
+    "screen.duollectis.proxy_manager.label.name": "Name:",
+    "screen.duollectis.proxy_manager.label.address": "Address:",
+    "screen.duollectis.proxy_manager.label.port": "Port:",
+    "screen.duollectis.proxy_manager.label.username": "Username:",
+    "screen.duollectis.proxy_manager.label.password": "Password:",
+    "screen.duollectis.proxy_manager.label.max_pings": "Max pings:",
+    "screen.duollectis.proxy_manager.label.delay_ms": "Delay ms:",
+    "screen.duollectis.proxy_manager.label.threads": "Threads:",
+    "screen.duollectis.proxy_manager.label.target": "Target server:",
+    "screen.duollectis.proxy_manager.field.name": "Name (optional)",
+    "screen.duollectis.proxy_manager.field.address": "Address",
+    "screen.duollectis.proxy_manager.field.port": "Port",
+    "screen.duollectis.proxy_manager.field.username": "Username (optional)",
+    "screen.duollectis.proxy_manager.field.password": "Password (optional)",
+    "screen.duollectis.proxy_manager.field.threads": "Threads",
+    "screen.duollectis.proxy_manager.btn.add": "Add",
+    "screen.duollectis.proxy_manager.btn.remove": "Remove",
+    "screen.duollectis.proxy_manager.btn.save": "Save",
+    "screen.duollectis.proxy_manager.btn.cancel": "Cancel",
+    "screen.duollectis.proxy_manager.btn.start": "Start",
+    "screen.duollectis.proxy_manager.btn.stop": "Stop",
+    "screen.duollectis.proxy_manager.btn.import_clip": "Import Clip",
+    "screen.duollectis.proxy_manager.btn.import_file": "Import File",
+    "screen.duollectis.proxy_manager.btn.del_failed": "Del Failed",
+    "screen.duollectis.proxy_manager.btn.clear": "Clear",
+    "screen.duollectis.proxy_manager.btn.reset_raw": "Reset Raw",
+    "screen.duollectis.proxy_manager.btn.export_ok": "Export",
+    "screen.duollectis.proxy_manager.btn.reset_checked": "Reset",
+    "screen.duollectis.proxy_manager.btn.recheck": "Recheck",
+    "screen.duollectis.proxy_manager.btn.sort": "Sort: ",
+    "screen.duollectis.proxy_manager.btn.done": "Done",
+    "screen.duollectis.proxy_manager.btn.ping_on": "Ping: ON",
+    "screen.duollectis.proxy_manager.btn.ping_off": "Ping: OFF",
+    "screen.duollectis.proxy_manager.btn.next": "Next",
+    "screen.duollectis.proxy_manager.sort.none": "None",
+    "screen.duollectis.proxy_manager.sort.latency_asc": "Latency ↑",
+    "screen.duollectis.proxy_manager.sort.latency_desc": "Latency ↓",
+    "screen.duollectis.proxy_manager.sort.ping_asc": "Pings ↑",
+    "screen.duollectis.proxy_manager.sort.ping_desc": "Pings ↓",
+    "screen.duollectis.proxy_manager.sort.type": "Type",
+    "screen.duollectis.proxy_manager.sort.ip": "IP",
+    "screen.duollectis.proxy_manager.status.checking": "Checking...",
+    "screen.duollectis.proxy_manager.status.failed": "FAILED",
+    "screen.duollectis.proxy_manager.status.ok": "OK",
+    "screen.duollectis.proxy_manager.status.unknown": "—",
+    "screen.duollectis.proxy_manager.status.dead_ip": "DEAD IP",
+    "screen.duollectis.proxy_manager.status.dead_server": "DEAD SERVER",
+    "screen.duollectis.proxy_manager.status.ping_error": "PING ERROR",
+    "screen.duollectis.proxy_manager.progress.checking": "Checking: ",
+    "screen.duollectis.proxy_manager.progress.paused": "Paused: ",
+    "screen.duollectis.proxy_manager.progress.done": "Done: ",
+    "screen.duollectis.proxy_manager.active.none": "No active proxy",
+    "screen.duollectis.proxy_manager.active.prefix": "Active: ",
+    "screen.duollectis.proxy_manager.msg.settings_applied": "Settings applied.",
+    "screen.duollectis.proxy_manager.msg.editing": "Editing — double-click to select, Save to apply.",
+    "screen.duollectis.proxy_manager.msg.proxy_saved": "Proxy saved.",
+    "screen.duollectis.proxy_manager.msg.address_port_required": "Address and port are required.",
+    "screen.duollectis.proxy_manager.msg.invalid_port": "Invalid port.",
+    "screen.duollectis.proxy_manager.msg.clipboard_empty": "Clipboard is empty.",
+    "screen.duollectis.proxy_manager.msg.no_valid_proxies": "No valid proxies found.",
+    "screen.duollectis.proxy_manager.msg.no_checked_to_recheck": "No checked proxies to recheck.",
+    "screen.duollectis.proxy_manager.msg.deleted_failed": "Deleted %s failed proxies.",
+    "screen.duollectis.proxy_manager.msg.cleared_raw": "Cleared %s raw proxies.",
+    "screen.duollectis.proxy_manager.msg.reset_raw": "Reset %s raw proxies to UNKNOWN.",
+    "screen.duollectis.proxy_manager.msg.reset_checked": "Reset %s checked proxies to UNKNOWN.",
+    "screen.duollectis.proxy_manager.msg.rechecking": "Rechecking %s proxies...",
+    "screen.duollectis.proxy_manager.msg.imported": "Imported %s proxies.",
+    "screen.duollectis.proxy_manager.msg.exported": "Exported %s proxies to %s",
+    "screen.duollectis.proxy_manager.msg.error_reading_file": "Error reading file: %s",
+    "screen.duollectis.proxy_manager.msg.export_error": "Export error: %s",
+    "screen.duollectis.proxy_manager.msg.copied": "Copied: %s",
+    "screen.duollectis.proxy_manager.msg.no_ok_proxy": "No OK proxies available.",
+    "screen.duollectis.proxy_manager.msg.next_proxy": "Next proxy: %s",
+    "screen.duollectis.proxy_manager.dialog.import_title": "Select proxy list file",
+    "screen.duollectis.proxy_manager.dialog.import_filter": "Text files (*.txt, *.csv)",
+    "screen.duollectis.proxy_manager.dialog.export_title": "Save checked proxies",
+    "screen.duollectis.proxy_manager.dialog.export_filter": "Text files (*.txt)",
+    "screen.duollectis.proxy_manager.entry.ping": "  ping:",
+    "screen.duollectis.proxy_manager.entry.ping_ms": "ms",
+    "screen.duollectis.proxy_manager.entry.unknown_type": "[?]",
+    "screen.duollectis.proxy_manager.entry.active_prefix": "► ",
+    "screen.duollectis.proxy_manager.entry.inactive_prefix": "  ",
+    "screen.duollectis.proxy_manager.entry.copy_btn": "[C]",
     "duollectis.client": {
         "global": {
-            "settings": {
-
+            "settings": {}
+        },
+        "account_manager": {
+            "title": "Account Manager",
+            "list.title": "Accounts",
+            "section.add": "Add Account",
+            "field.nickname": "Nickname",
+            "current": "Current",
+            "button": {
+                "add": "Add",
+                "remove": "Remove",
+                "switch": "Switch"
+            },
+            "message": {
+                "empty_name": "Enter a nickname",
+                "already_exists": "Account already exists",
+                "added": "Account added",
+                "removed": "Account removed",
+                "none_selected": "No account selected",
+                "switched": "Switched to: ",
+                "sorted": "Group sorted"
             }
         },
         "modules": {
@@ -175,15 +266,317 @@
                     }
                 }
             },
+            "freecam": {
+                "name": "FreeCam",
+                "description": "Detaches the camera from the player, allowing free flight while the player stays frozen on the server.",
+                "settings": {
+                    "speed": {
+                        "name": "Speed",
+                        "description": "Camera movement speed per tick."
+                    },
+                    "sensitivity": {
+                        "name": "Sensitivity",
+                        "description": "Mouse sensitivity multiplier for camera rotation."
+                    }
+                }
+            },
+            "elytra-fly": {
+                "name": "Elytra Fly",
+                "description": "Enhances elytra flight with configurable speed control. Creative mode replaces elytra physics with direct velocity control; Vanilla mode adds a boost impulse on jump.",
+                "settings": {
+                    "mode": {
+                        "name": "Mode",
+                        "description": "CREATIVE — direct velocity control (WASD + jump/sneak); VANILLA — adds a boost impulse on jump press."
+                    },
+                    "speed": {
+                        "name": "Speed",
+                        "description": "Flight speed per tick in Creative mode."
+                    },
+                    "vanilla-boost": {
+                        "name": "Vanilla Boost",
+                        "description": "Impulse multiplier applied on jump press in Vanilla mode."
+                    },
+                    "auto-activate": {
+                        "name": "Auto Activate",
+                        "description": "Automatically starts gliding when the player is airborne and not already gliding."
+                    }
+                }
+            },
             "velocity": {
                 "name": "Velocity",
                 "description": "Cancels incoming knockback packets for the local player.",
                 "settings": {}
             },
+            "no-world-save": {
+                "name": "No World Save",
+                "description": "Prevents the singleplayer world from being saved on pause or exit.",
+                "settings": {}
+            },
+            "auto-totem": {
+                "name": "Auto Totem",
+                "description": "Automatically moves a Totem of Undying from the inventory into the offhand slot.",
+                "settings": {
+                    "swap-delay": {
+                        "name": "Swap Delay",
+                        "description": "Ticks between swap attempts. Set to 0 to swap every tick."
+                    }
+                }
+            },
             "test": {
                 "name": "Test",
                 "description": "",
                 "settings": {}
+            },
+            "mapart-zone-viewer": {
+                "name": "MapArt Zone Viewer",
+                "description": "Renders the active Litematica schematic zone border and warns about snow biomes that can ruin a map art.",
+                "settings": {
+                    "border-color": {
+                        "name": "Border Color",
+                        "description": "Color of the schematic zone perimeter lines."
+                    },
+                    "edge-color": {
+                        "name": "Edge Marker Color",
+                        "description": "Color of the tick marks along zone edges every 16 blocks."
+                    },
+                    "snow-biome-color": {
+                        "name": "Snow Biome Color",
+                        "description": "Color of vertical markers at snow biome positions."
+                    },
+                    "show-edge-markers": {
+                        "name": "Show Edge Markers",
+                        "description": "Show tick marks along zone edges every 16 blocks."
+                    },
+                    "warn-snow-biomes": {
+                        "name": "Warn Snow Biomes",
+                        "description": "Print a chat warning when snow biomes are detected inside the schematic zone."
+                    },
+                    "show-map-grid": {
+                        "name": "Map Grid",
+                        "description": "Show the 128×128 map grid around the schematic zone and highlight the nearest aligned position."
+                    },
+                    "map-grid-color": {
+                        "name": "Map Grid Color",
+                        "description": "Color of the 128×128 map grid lines and the target snap position rectangle."
+                    }
+                }
+            },
+            "mapart-enhancer": {
+                "name": "MapArt Enhancer",
+                "description": "Applies bilinear filtering, Gaussian blur and pixel post-processing (brightness, contrast, saturation) to map item textures.",
+                "settings": {
+                    "blur": {
+                        "name": "Blur",
+                        "description": "Gaussian blur radius in pixels. Hides map pixelation. 0 — no blur, 5 — maximum."
+                    },
+                    "brightness": {
+                        "name": "Brightness",
+                        "description": "Adjusts the overall brightness of map textures. Positive values brighten, negative darken."
+                    },
+                    "contrast": {
+                        "name": "Contrast",
+                        "description": "Adjusts the contrast of map textures. Positive values increase contrast, negative reduce it."
+                    },
+                    "saturation": {
+                        "name": "Saturation",
+                        "description": "Adjusts the color saturation of map textures. Positive values make colors more vivid, negative desaturate."
+                    }
+                }
+            },
+            "custom-fov": {
+                "name": "Custom FOV",
+                "description": "Overrides the game field of view with a custom value, smoothly interpolated each frame.",
+                "settings": {
+                    "fov": {
+                        "name": "FOV",
+                        "description": "Target field of view in degrees."
+                    }
+                }
+            },
+            "no-view-bob": {
+                "name": "No View Bob",
+                "description": "Completely freezes the camera: disables walk bobbing, damage tilt, death rotation, and nausea/potion distortion.",
+                "settings": {}
+            },
+            "bloom": {
+                "name": "Bloom",
+                "description": "Applies a bloom post-processing effect that makes bright areas glow.",
+                "settings": {
+                    "threshold": {
+                        "name": "Threshold",
+                        "description": "Brightness threshold above which pixels contribute to the bloom glow (0.0–1.0)."
+                    },
+                    "intensity": {
+                        "name": "Intensity",
+                        "description": "Multiplier for the bloom glow brightness."
+                    },
+                    "radius": {
+                        "name": "Radius",
+                        "description": "Blur radius of the bloom glow in pixels."
+                    }
+                }
+            },
+            "render-test": {
+                "name": "Render Test",
+                "description": "ESP module for testing world-space render utilities. Draws bounding boxes around players, mobs and entities. Highlights the block under the player's feet and the block under the crosshair.",
+                "settings": {
+                    "esp-players": {
+                        "name": "ESP Players",
+                        "description": "Draws a bounding box around all players in range."
+                    },
+                    "esp-mobs": {
+                        "name": "ESP Mobs",
+                        "description": "Draws a bounding box around all living entities (mobs) in range."
+                    },
+                    "esp-entities": {
+                        "name": "ESP Entities",
+                        "description": "Draws a bounding box around all other entities (items, projectiles, etc.) in range."
+                    },
+                    "esp-filled": {
+                        "name": "Filled Boxes",
+                        "description": "Renders translucent filled boxes instead of wireframe outlines only."
+                    },
+                    "esp-through-walls": {
+                        "name": "Through Walls",
+                        "description": "Renders ESP boxes through walls (no depth test)."
+                    },
+                    "esp-range": {
+                        "name": "Range",
+                        "description": "Maximum distance in blocks at which entities are highlighted."
+                    },
+                    "foot-block": {
+                        "name": "Foot Block",
+                        "description": "Highlights the block directly under the player's feet."
+                    },
+                    "crosshair-block": {
+                        "name": "Crosshair Block",
+                        "description": "Highlights the block currently targeted by the crosshair."
+                    }
+                }
+            },
+            "render-test": {
+                "name": "Render Test",
+                "description": "Tests all render utilities: world primitives (filled box, lines box) and post-processing effects (vignette, grayscale, chromatic aberration). Displays a HUD overlay with active effect states.",
+                "settings": {
+                    "filled-box": {
+                        "name": "Filled Box",
+                        "description": "Renders a translucent filled AABB around the block at the player's feet."
+                    },
+                    "lines-box": {
+                        "name": "Lines Box",
+                        "description": "Renders a wireframe box one block above the player's feet."
+                    },
+                    "vignette": {
+                        "name": "Vignette",
+                        "description": "Applies a vignette post-processing effect (darkens screen edges)."
+                    },
+                    "vignette-strength": {
+                        "name": "Vignette Strength",
+                        "description": "Controls how strongly the edges are darkened."
+                    },
+                    "grayscale": {
+                        "name": "Grayscale",
+                        "description": "Applies a grayscale desaturation post-processing effect."
+                    },
+                    "grayscale-strength": {
+                        "name": "Grayscale Strength",
+                        "description": "Controls how strongly the image is desaturated (0 = none, 1 = full grayscale)."
+                    },
+                    "chromatic": {
+                        "name": "Chromatic Aberration",
+                        "description": "Applies a chromatic aberration post-processing effect."
+                    },
+                    "chromatic-strength": {
+                        "name": "Chromatic Strength",
+                        "description": "Controls how far the RGB channels are split toward screen edges."
+                    }
+                }
+            },
+            "chromatic-aberration": {
+                "name": "Chromatic Aberration",
+                "description": "Applies a chromatic aberration post-processing effect that splits RGB channels toward screen edges.",
+                "settings": {
+                    "strength": {
+                        "name": "Strength",
+                        "description": "How far the red and blue channels are shifted from the green channel."
+                    }
+                }
+            },
+            "chams": {
+                "name": "Chams",
+                "description": "Renders a 2D silhouette and outline over entities via the vanilla entityOutlineFramebuffer. Supports multiple shader modes.",
+                "settings": {
+                    "affect-players": {
+                        "name": "Affect Players",
+                        "description": "Applies chams to all players."
+                    },
+                    "affect-mobs": {
+                        "name": "Affect Mobs",
+                        "description": "Applies chams to all living mobs."
+                    },
+                    "shader-mode": {
+                        "name": "Shader Mode",
+                        "description": "Visual style of the silhouette fill: FLAT — solid color, RAINBOW — hue-shifting color, PULSE — pulsing transparency, NONE — outline only."
+                    },
+                    "shader-color": {
+                        "name": "Shader Color",
+                        "description": "Base fill color of the silhouette. Alpha controls transparency. Has no effect in RAINBOW mode."
+                    },
+                    "outline": {
+                        "name": "Outline",
+                        "description": "Enables the vanilla 2D outline around the silhouette edges via the entity_outline post-processor."
+                    },
+                    "outline-color": {
+                        "name": "Outline Color",
+                        "description": "Color of the contour around the 2D silhouette."
+                    }
+                }
+            },
+            "hotbar-sorter": {
+                "name": "Hotbar Sorter",
+                "description": "Automatically fills hotbar slots with items according to configured priority lists. Each slot has its own ordered list — the first item found in the inventory is placed there.",
+                "settings": {
+                    "swap-delay": {
+                        "name": "Swap Delay",
+                        "description": "Ticks between swap operations. Set to 0 to swap every tick."
+                    },
+                    "slot-1": {
+                        "name": "Slot 1 Items",
+                        "description": "Priority list for hotbar slot 1. The first item found in the inventory is swapped in."
+                    },
+                    "slot-2": {
+                        "name": "Slot 2 Items",
+                        "description": "Priority list for hotbar slot 2. The first item found in the inventory is swapped in."
+                    },
+                    "slot-3": {
+                        "name": "Slot 3 Items",
+                        "description": "Priority list for hotbar slot 3. The first item found in the inventory is swapped in."
+                    },
+                    "slot-4": {
+                        "name": "Slot 4 Items",
+                        "description": "Priority list for hotbar slot 4. The first item found in the inventory is swapped in."
+                    },
+                    "slot-5": {
+                        "name": "Slot 5 Items",
+                        "description": "Priority list for hotbar slot 5. The first item found in the inventory is swapped in."
+                    },
+                    "slot-6": {
+                        "name": "Slot 6 Items",
+                        "description": "Priority list for hotbar slot 6. The first item found in the inventory is swapped in."
+                    },
+                    "slot-7": {
+                        "name": "Slot 7 Items",
+                        "description": "Priority list for hotbar slot 7. The first item found in the inventory is swapped in."
+                    },
+                    "slot-8": {
+                        "name": "Slot 8 Items",
+                        "description": "Priority list for hotbar slot 8. The first item found in the inventory is swapped in."
+                    },
+                    "slot-9": {
+                        "name": "Slot 9 Items",
+                        "description": "Priority list for hotbar slot 9. The first item found in the inventory is swapped in."
+                    }
+                }
             }
         }
     }

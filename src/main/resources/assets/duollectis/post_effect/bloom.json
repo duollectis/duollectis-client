@@ -1,0 +1,98 @@
+{
+    "targets": {
+        "bloom_bright": {},
+        "bloom_swap": {}
+    },
+    "passes": [
+        {
+            "vertex_shader": "minecraft:core/screenquad",
+            "fragment_shader": "duollectis:post/bloom_extract",
+            "inputs": [
+                {
+                    "sampler_name": "In",
+                    "target": "minecraft:main",
+                    "bilinear": false
+                }
+            ],
+            "output": "bloom_bright",
+            "uniforms": {
+                "BloomExtractConfig": [
+                    {
+                        "type": "float",
+                        "value": 0.3
+                    },
+                    {
+                        "type": "float",
+                        "value": 1.5
+                    }
+                ]
+            }
+        },
+        {
+            "vertex_shader": "minecraft:core/screenquad",
+            "fragment_shader": "duollectis:post/bloom_blur",
+            "inputs": [
+                {
+                    "sampler_name": "In",
+                    "target": "bloom_bright",
+                    "bilinear": true
+                }
+            ],
+            "output": "bloom_swap",
+            "uniforms": {
+                "BlurConfig": [
+                    {
+                        "type": "vec2",
+                        "value": [ 1.0, 0.0 ]
+                    },
+                    {
+                        "type": "float",
+                        "value": 4.0
+                    }
+                ]
+            }
+        },
+        {
+            "vertex_shader": "minecraft:core/screenquad",
+            "fragment_shader": "duollectis:post/bloom_blur",
+            "inputs": [
+                {
+                    "sampler_name": "In",
+                    "target": "bloom_swap",
+                    "bilinear": true
+                }
+            ],
+            "output": "bloom_bright",
+            "uniforms": {
+                "BlurConfig": [
+                    {
+                        "type": "vec2",
+                        "value": [ 0.0, 1.0 ]
+                    },
+                    {
+                        "type": "float",
+                        "value": 4.0
+                    }
+                ]
+            }
+        },
+        {
+            "vertex_shader": "minecraft:core/screenquad",
+            "fragment_shader": "duollectis:post/bloom_blend",
+            "inputs": [
+                {
+                    "sampler_name": "In",
+                    "target": "minecraft:main",
+                    "bilinear": false
+                },
+                {
+                    "sampler_name": "Bloom",
+                    "target": "bloom_bright",
+                    "bilinear": true
+                }
+            ],
+            "output": "minecraft:main",
+            "uniforms": {}
+        }
+    ]
+}

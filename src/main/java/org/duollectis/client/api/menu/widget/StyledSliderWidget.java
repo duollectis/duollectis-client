@@ -8,7 +8,7 @@ import net.minecraft.text.Text;
 
 import java.util.function.Consumer;
 
-import static org.duollectis.client.api.menu.modules.ModulesScreenLayout.drawBorder;
+import static org.duollectis.client.api.menu.main.ClientScreenLayout.drawBorder;
 
 /**
  * Стилизованный слайдер для числовых настроек. Поддерживает перетаскивание,

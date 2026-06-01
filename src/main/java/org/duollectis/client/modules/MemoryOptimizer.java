@@ -1,7 +1,5 @@
 package org.duollectis.client.modules;
 
-import static org.duollectis.client.utils.MC.mc;
-
 import lombok.Getter;
 import org.duollectis.client.api.event.Subscribe;
 import org.duollectis.client.api.event.events.TickPreEvent;
@@ -134,15 +132,12 @@ public class MemoryOptimizer extends Module {
 	private int tickCounter;
 
 	@Override
-	protected void onActivate() {
+	public void onActivate() {
 		tickCounter = 0;
-		applyRenderDistanceLimit();
-		applyMipmapSetting();
-		purgeHeavyResources();
 	}
 
 	@Override
-	protected void onDeactivate() {
+	public void onDeactivate() {
 		if (mc.worldRenderer != null) {
 			mc.worldRenderer.scheduleTerrainUpdate();
 		}
@@ -165,32 +160,12 @@ public class MemoryOptimizer extends Module {
 		runtime.gc();
 	}
 
-	/**
-	 * Немедленно применяет ограничение дистанции рендера, перепланируя все чанки.
-	 * Без этого вызова уже загруженные чанки остаются в памяти до следующего тика.
-	 */
-	private void applyRenderDistanceLimit() {
-		if (mc.worldRenderer == null || !limitRenderDistance.get()) {
-			return;
-		}
-
-		mc.worldRenderer.scheduleTerrainUpdate();
-	}
-
-	/**
-	 * Применяет настройку mipmap через полную перезагрузку ресурсов.
-	 * Вызывается только при включении модуля, чтобы не перезагружать ресурсы лишний раз.
-	 */
-	private void applyMipmapSetting() {
-		if (!noMipmap.get()) {
-			return;
-		}
-
-		mc.reloadResources();
-	}
-
 	@Subscribe
 	private void onTick(TickPreEvent event) {
+		if (mc.world == null) {
+			return;
+		}
+
 		if (!autoPurge.get()) {
 			return;
 		}

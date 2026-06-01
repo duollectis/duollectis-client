@@ -32,7 +32,7 @@ public class ModuleRegistryProcessor extends AbstractProcessor {
 			}
 		}
 
-		if (roundEnv.processingOver() && moduleClassNames.isEmpty() == false) {
+		if (roundEnv.processingOver() && !moduleClassNames.isEmpty()) {
 			writeRegistry();
 		}
 

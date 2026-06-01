@@ -43,15 +43,31 @@ tasks.register('copyDependencies', Copy) {
 	into "${layout.buildDirectory.get()}/dependencies"
 }
 
+configurations {
+	shade
+}
+
+repositories {
+	maven {
+		name = "Modrinth"
+		url = "https://api.modrinth.com/maven"
+	}
+}
+
 dependencies {
 	// To change the versions see the gradle.properties file
 	minecraft "com.mojang:minecraft:${project.minecraft_version}"
 	mappings "net.fabricmc:yarn:1.21.11+build.1:v2"
 
 	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
-	modImplementation 'io.netty:netty-handler-proxy:4.2.7.Final'
 
-	modImplementation fileTree(dir: "libs", include: ["*.jar"])
+	modCompileOnly "maven.modrinth:sodium:mc1.21.11-0.8.7-fabric"
+
+	// Litematica и MaLiLib — только для компиляции, не попадают в рантайм
+	modCompileOnly fileTree(dir: "libs", include: ["litematica-*.jar", "malilib-*.jar"])
+
+	shade 'io.netty:netty-handler-proxy:4.2.7.Final'
+	implementation('io.netty:netty-handler-proxy:4.2.7.Final') { transitive = false }
 
 	// Lombok: compileOnly для компилятора (видит аннотации), annotationProcessor для AP
 	compileOnly "org.projectlombok:lombok:${project.lombok_version}"
@@ -92,6 +108,12 @@ jar {
 	inputs.property "projectName", projectName
 
 	from("LICENSE") {
-		rename { "${it}_$projectName"}
+		rename { "${it}_$projectName" }
 	}
+
+	from {
+		configurations.shade.collect { zipTree(it) }
+	}
+
+	duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }

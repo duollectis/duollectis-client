@@ -20,6 +20,7 @@ import java.util.List;
 import static org.duollectis.client.utils.MC.mc;
 
 /** Утилиты для программного клика по слотам инвентаря с корректной сетевой синхронизацией. */
+@Deprecated
 public final class ScreenHandlerUtil {
 
 	private ScreenHandlerUtil() {}

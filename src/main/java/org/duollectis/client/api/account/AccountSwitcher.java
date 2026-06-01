@@ -5,10 +5,9 @@ import lombok.extern.slf4j.Slf4j;
 import net.minecraft.client.session.Session;
 import org.duollectis.client.mixin.account.MinecraftClientSessionMixin;
 
-import static org.duollectis.client.utils.MC.mc;
-
-import java.util.Optional;
 import java.util.UUID;
+
+import static org.duollectis.client.utils.MC.mc;
 
 /**
  * Утилита мгновенной смены игрового ника без перезапуска клиента.

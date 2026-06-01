@@ -15,6 +15,8 @@ import org.duollectis.client.settings.ItemListSetting;
 
 import java.util.List;
 
+import static org.duollectis.client.api.menu.main.ClientScreenLayout.drawBorder;
+
 /**
  * Виджет редактирования {@link ItemListSetting}: текстовое поле для ввода ID предмета,
  * кнопка «+» для добавления и список текущих предметов с кнопкой «×» для удаления.
@@ -220,13 +222,6 @@ public final class ItemListWidget {
 		setting.get().add(item);
 		inputField.setText("");
 		errorMsg = "";
-	}
-
-	private void drawBorder(DrawContext ctx, int bx, int by, int bw, int bh, int color) {
-		ctx.fill(bx, by, bx + bw, by + 1, color);
-		ctx.fill(bx, by + bh - 1, bx + bw, by + bh, color);
-		ctx.fill(bx, by, bx + 1, by + bh, color);
-		ctx.fill(bx + bw - 1, by, bx + bw, by + bh, color);
 	}
 
 }

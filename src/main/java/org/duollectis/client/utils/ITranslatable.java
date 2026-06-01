@@ -1,6 +1,6 @@
 package org.duollectis.client.utils;
 
-import org.duollectis.client.api.i18n.ClientTranslations;
+import static org.duollectis.client.utils.MC.translations;
 
 /**
  * Контракт локализуемого объекта: предоставляет имя и описание через систему переводов.
@@ -8,14 +8,12 @@ import org.duollectis.client.api.i18n.ClientTranslations;
  */
 public interface ITranslatable {
 
-	ClientTranslations tr = ClientTranslations.getInstance();
-
 	default String getName() {
-		return tr.get(getTranslationPath() + ".name", getId());
+		return translations().get(getTranslationPath() + ".name", getId());
 	}
 
 	default String getDescription() {
-		return tr.get(getTranslationPath() + ".description", "");
+		return translations().get(getTranslationPath() + ".description", "");
 	}
 
 	String getId();

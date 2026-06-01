@@ -4,7 +4,6 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import net.fabricmc.loader.api.FabricLoader;
 import org.duollectis.client.utils.JsonHelper;
 
 import java.io.File;
@@ -13,9 +12,12 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Arrays;
 
+import static org.duollectis.client.utils.MC.gameDir;
+
 /**
- * Синглтон конфигурации клиентского UI: хранит выбранную локаль и сохраняет её в
- * {@code duollectis/client-config.json}. При смене локали автоматически перезагружает переводы.
+ * Синглтон конфигурации клиентского UI: хранит только выбранную локаль.
+ * Бинды клавиш вынесены в {@link org.duollectis.client.api.bind.BindManager}.
+ * Сохраняет данные в {@code duollectis/client-config.json}.
  */
 @Slf4j
 public final class ClientConfig {
@@ -84,7 +86,6 @@ public final class ClientConfig {
 	}
 
 	private static File resolveFile() {
-		return FabricLoader.getInstance().getGameDir().resolve(CONFIG_FILE).toFile();
+		return gameDir().resolve(CONFIG_FILE).toFile();
 	}
-
 }

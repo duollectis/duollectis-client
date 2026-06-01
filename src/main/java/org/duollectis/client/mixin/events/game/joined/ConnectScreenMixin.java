@@ -30,7 +30,8 @@ public abstract class ConnectScreenMixin {
 			CookieStorage cookieStorage,
 			CallbackInfo ci
 	) {
-		EventBus.getInstance().post(new GameJoinedEvent(address, info));
+		GameJoinedEvent.INSTANCE.set(address, info);
+		EventBus.getInstance().post(GameJoinedEvent.INSTANCE);
 	}
 
 }

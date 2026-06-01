@@ -10,7 +10,7 @@ import org.lwjgl.glfw.GLFW;
 
 import java.util.function.Consumer;
 
-import static org.duollectis.client.api.menu.modules.ModulesScreenLayout.COLOR_TEXT_DIM;
+import static org.duollectis.client.api.menu.main.ClientScreenLayout.COLOR_TEXT_DIM;
 
 /**
  * Текстовое поле для ввода числовых значений с валидацией диапазона, суффиксом

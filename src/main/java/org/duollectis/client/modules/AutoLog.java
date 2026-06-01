@@ -1,7 +1,5 @@
 package org.duollectis.client.modules;
 
-import static org.duollectis.client.utils.MC.mc;
-
 import net.minecraft.client.gui.screen.DisconnectedScreen;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.screen.TitleScreen;

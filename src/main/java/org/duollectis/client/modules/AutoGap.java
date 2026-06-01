@@ -1,7 +1,5 @@
 package org.duollectis.client.modules;
 
-import static org.duollectis.client.utils.MC.mc;
-
 import net.minecraft.item.Items;
 import net.minecraft.util.Hand;
 import org.duollectis.client.api.event.Subscribe;
@@ -43,8 +41,8 @@ public class AutoGap extends Module {
 		timer = 0;
 	}
 
-	@Subscribe
-	private void onTickPre(TickPreEvent event) {
+	@Subscribe(TickPreEvent.class)
+	private void onTickPre() {
 		if (mc.player == null) {
 			return;
 		}

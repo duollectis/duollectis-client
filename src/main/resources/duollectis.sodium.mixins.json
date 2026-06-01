@@ -1,0 +1,11 @@
+{
+    "required": false,
+    "package": "org.duollectis.client.mixin",
+    "compatibilityLevel": "JAVA_21",
+    "injectors": {
+        "defaultRequire": 1
+    },
+    "client": [
+        "modules.fullbright.SodiumLightDataAccessMixin"
+    ]
+}

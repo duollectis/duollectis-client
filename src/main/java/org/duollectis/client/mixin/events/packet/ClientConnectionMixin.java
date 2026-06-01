@@ -28,9 +28,11 @@ public class ClientConnectionMixin {
 			cancellable = true
 	)
 	private void duollectis$onPacketReceive(ChannelHandlerContext context, Packet<?> packet, CallbackInfo ci) {
-		PacketReceiveEvent event = EventBus.getInstance().post(new PacketReceiveEvent(packet));
+		PacketReceiveEvent.INSTANCE.reset();
+		PacketReceiveEvent.INSTANCE.set(packet);
+		EventBus.getInstance().post(PacketReceiveEvent.INSTANCE);
 
-		if (event.isCancelled()) {
+		if (PacketReceiveEvent.INSTANCE.isCancelled()) {
 			ci.cancel();
 		}
 	}
@@ -46,9 +48,11 @@ public class ClientConnectionMixin {
 			boolean flush,
 			CallbackInfo ci
 	) {
-		PacketSendEvent event = EventBus.getInstance().post(new PacketSendEvent(packet));
+		PacketSendEvent.INSTANCE.reset();
+		PacketSendEvent.INSTANCE.set(packet);
+		EventBus.getInstance().post(PacketSendEvent.INSTANCE);
 
-		if (event.isCancelled()) {
+		if (PacketSendEvent.INSTANCE.isCancelled()) {
 			ci.cancel();
 		}
 	}
@@ -63,7 +67,8 @@ public class ClientConnectionMixin {
 			boolean flush,
 			CallbackInfo ci
 	) {
-		EventBus.getInstance().post(new PacketSentEvent(packet));
+		PacketSentEvent.INSTANCE.set(packet);
+		EventBus.getInstance().post(PacketSentEvent.INSTANCE);
 	}
 
 }

@@ -1,31 +1,42 @@
 package org.duollectis.client.mixin.modules.fullbright;
 
+import com.llamalad7.mixinextras.sugar.Local;
+import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.textures.GpuTexture;
 import net.minecraft.client.render.LightmapTextureManager;
+import net.minecraft.util.profiler.Profiler;
 import org.duollectis.client.api.modules.ModuleManager;
 import org.duollectis.client.modules.Fullbright;
+import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.ModifyArg;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(LightmapTextureManager.class)
 public class LightmapTextureManagerMixin {
 
-	/**
-	 * Подменяет значение гаммы в UBO lightmap на максимальное (1.0),
-	 * когда модуль Fullbright активен. Гамма — 7-й аргумент putFloat в цепочке
-	 * Std140Builder.intoBuffer(...).putFloat(f).putFloat(g).putFloat(n)
-	 * .putFloat(m).putFloat(k).putFloat(skyDarkness).putFloat(gamma <- ordinal=6)
-	 */
-	@ModifyArg(
-		method = "update",
-		at = @At(
-			value = "INVOKE",
-			target = "Lcom/mojang/blaze3d/buffers/Std140Builder;putFloat(F)Lcom/mojang/blaze3d/buffers/Std140Builder;",
-			ordinal = 6
-		)
+	@Shadow
+	@Final
+	private GpuTexture glTexture;
+
+	@Inject(
+			method = "update",
+			at = @At(
+					value = "INVOKE",
+					target = "Lnet/minecraft/util/profiler/Profiler;push(Ljava/lang/String;)V",
+					shift = At.Shift.AFTER
+			),
+			cancellable = true
 	)
-	private float duollectis$overrideGamma(float original) {
+	private void duollectis$overrideGamma(float tickProgress, CallbackInfo ci, @Local Profiler profiler) {
 		Fullbright module = ModuleManager.getInstance().get(Fullbright.class);
-		return module != null && module.isActive() ? module.getValue() : original;
+
+		if (module != null && module.isActive()) {
+			RenderSystem.getDevice().createCommandEncoder().clearColorTexture(glTexture, 0xFFFFFFFF);
+			profiler.pop();
+			ci.cancel();
+		}
 	}
 }

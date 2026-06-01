@@ -5,7 +5,6 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import net.fabricmc.loader.api.FabricLoader;
 
 import java.io.File;
 import java.io.FileReader;
@@ -16,6 +15,8 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
+import static org.duollectis.client.utils.MC.gameDirFile;
+
 /**
  * Менеджер оффлайн-аккаунтов: хранит список ников, управляет активным аккаунтом,
  * сохраняет и загружает данные из {@code duollectis/accounts.json}.
@@ -25,15 +26,7 @@ import java.util.List;
 public class AccountManager {
 
 	@Getter
-	private static AccountManager instance;
-
-	private final List<Account> accountsSet = new ArrayList<>();
-
-	/** Группы, созданные вручную — порядок определяется пользователем. */
-	private final List<String> namedGroups = new ArrayList<>();
-
-	@Getter
-	private Account activeAccount;
+	private static final AccountManager instance = new AccountManager();
 
 	private static final Gson ACCOUNT_GSON = new GsonBuilder()
 			.setPrettyPrinting()
@@ -43,10 +36,26 @@ public class AccountManager {
 	private static final Type ACCOUNT_LIST_TYPE = new TypeToken<List<Account>>() {}.getType();
 	private static final Type STRING_LIST_TYPE = new TypeToken<List<String>>() {}.getType();
 
-	public AccountManager() {
-		instance = this;
+	private final List<Account> accountsSet = new ArrayList<>();
+
+	/** Группы, созданные вручную — порядок определяется пользователем. */
+	private final List<String> namedGroups = new ArrayList<>();
+
+	@Getter
+	private Account activeAccount;
+
+	private boolean init;
+
+	private AccountManager() {}
+
+	public void init() {
+		if (init) {
+			throw new RuntimeException("Double initialization!");
+		}
+
 		load();
 		loadGroups();
+		init = true;
 	}
 
 	public List<Account> getAccounts() {
@@ -294,10 +303,10 @@ public class AccountManager {
 	}
 
 	private static File accountFile() {
-		return new File(FabricLoader.getInstance().getGameDir().toFile(), "duollectis/accounts.json");
+		return new File(gameDirFile(), "duollectis/accounts.json");
 	}
 
 	private static File groupsFile() {
-		return new File(FabricLoader.getInstance().getGameDir().toFile(), "duollectis/groups.json");
+		return new File(gameDirFile(), "duollectis/groups.json");
 	}
 }

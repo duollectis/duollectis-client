@@ -1,15 +1,11 @@
 package org.duollectis.client.mixin.modules.memoryoptimizer;
 
-import net.minecraft.client.texture.SpriteContents;
 import net.minecraft.client.texture.SpriteLoader;
 import org.duollectis.client.api.modules.ModuleManager;
 import org.duollectis.client.modules.MemoryOptimizer;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
-
-import java.util.List;
-import java.util.concurrent.Executor;
 
 /**
  * Принудительно обнуляет уровень mipmap при сшивке спрайт-атласа.

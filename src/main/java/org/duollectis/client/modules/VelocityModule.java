@@ -1,7 +1,5 @@
 package org.duollectis.client.modules;
 
-import static org.duollectis.client.utils.MC.mc;
-
 import net.minecraft.network.packet.s2c.play.EntityVelocityUpdateS2CPacket;
 import org.duollectis.client.api.event.Subscribe;
 import org.duollectis.client.api.event.events.PacketReceiveEvent;

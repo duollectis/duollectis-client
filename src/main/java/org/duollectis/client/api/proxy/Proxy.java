@@ -4,6 +4,7 @@ import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.ToString;
 
 import java.util.EnumSet;
 import java.util.Objects;
@@ -14,6 +15,7 @@ import java.util.Objects;
  * в ходе проверки {@link ProxyChecker}.
  */
 @Getter
+@ToString
 public class Proxy {
 
 	@Setter
